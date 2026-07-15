@@ -1,0 +1,55 @@
+{
+  "name": "bs-calendar",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Zero-dependency Nepali Bikram Sambat (BS) calendar conversion",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./react": {
+      "types": "./dist/react/calendar.d.ts",
+      "import": "./dist/react/calendar.js",
+      "require": "./dist/react/calendar.cjs"
+    },
+    "./date-picker": {
+      "types": "./dist/react/date-picker.d.ts",
+      "import": "./dist/react/date-picker.js",
+      "require": "./dist/react/date-picker.cjs"
+    }
+  },
+  "scripts": {
+    "build:data": "tsx scripts/build-data.ts",
+    "build": "tsup",
+    "test": "vitest run",
+    "verify:data": "tsx scripts/verify-data.ts",
+    "ci": "npm run build:data && npm run verify:data && npm run build && npm test",
+    "prepublishOnly": "npm run build:data && npm run build && npm test",
+    "serve:docs": "npx serve docs -l 4000"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "react": "^18.3.0",
+    "@types/react": "^18.3.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  },
+  "keywords": ["nepali", "calendar", "bikram-sambat", "bs", "patro", "date-converter"],
+  "license": "MIT"
+}

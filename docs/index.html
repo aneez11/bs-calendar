@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>bs-calendar — Bikram Sambat Calendar for JS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f172a; --bg-card: #1e293b; --bg-hover: #334155; --bg-code: #0b1120;
+    --text: #f1f5f9; --text-muted: #94a3b8; --text-dim: #64748b;
+    --accent: #3b82f6; --accent-glow: #60a5fa; --accent-subtle: #1e3a5f;
+    --green: #22c55e; --amber: #f59e0b; --rose: #f43f5e; --purple: #a78bfa;
+    --border: #334155; --radius: 10px; --radius-lg: 16px;
+    --sidebar-w: 260px; --header-h: 64px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--accent); color: #fff; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-glow); }
+  h1, h2, h3, h4 { line-height: 1.3; letter-spacing: -.02em; }
+  h1 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; }
+  h2 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); font-weight: 700; margin-bottom: 1rem; }
+  h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: .5rem; color: var(--accent-glow); }
+  p { margin-bottom: 1rem; color: var(--text-muted); line-height: 1.7; }
+  code { font-family: 'JetBrains Mono', monospace; font-size: .85em; background: var(--bg-hover); padding: 2px 6px; border-radius: 4px; color: var(--accent-glow); }
+  pre code { background: none; padding: 0; color: inherit; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── Header ── */
+  header {
+    position: sticky; top: 0; z-index: 100; height: var(--header-h);
+    background: rgba(15,23,42,.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+  header .container { display: flex; align-items: center; justify-content: space-between; height: 100%; }
+  .logo { font-weight: 800; font-size: 1.15rem; color: var(--text); letter-spacing: -.03em; display: flex; align-items: center; gap: 8px; }
+  .logo svg { width: 24px; height: 24px; }
+  .logo span { color: var(--accent); }
+  nav { display: flex; gap: 6px; align-items: center; }
+  nav a { font-size: .8125rem; font-weight: 500; color: var(--text-muted); padding: 6px 12px; border-radius: 6px; transition: all .15s; }
+  nav a:hover { color: var(--text); background: var(--bg-hover); text-decoration: none; }
+  .nav-cta { background: var(--accent); color: #fff !important; font-weight: 600; }
+  .nav-cta:hover { background: #2563eb !important; }
+  @media (max-width: 768px) { nav a:not(.nav-cta) { display: none; } }
+
+  /* ── Hero ── */
+  .hero {
+    padding: 80px 0 48px; text-align: center;
+    background: radial-gradient(ellipse at 50% 0%, rgba(59,130,246,.12) 0%, transparent 60%);
+  }
+  .hero-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .hero-badges span {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
+    padding: 4px 14px; font-size: .8125rem; font-weight: 500; color: var(--text-muted);
+  }
+  .hero h1 { margin-bottom: 1rem; }
+  .hero h1 em { font-style: normal; background: linear-gradient(135deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero .subtitle { font-size: 1.05rem; max-width: 580px; margin: 0 auto 2rem; }
+  .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 24px; border-radius: var(--radius); font-weight: 600; font-size: .875rem;
+    border: none; cursor: pointer; transition: all .15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #2563eb; color: #fff; text-decoration: none; }
+  .btn-secondary { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--text-muted); text-decoration: none; }
+
+  /* ── Layout ── */
+  .page { display: flex; gap: 32px; max-width: 1320px; margin: 0 auto; padding: 0 24px; }
+  .sidebar {
+    width: var(--sidebar-w); flex-shrink: 0; position: sticky; top: calc(var(--header-h) + 24px);
+    height: calc(100vh - var(--header-h) - 48px); overflow-y: auto; padding-right: 8px;
+    display: none;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .sidebar h5 { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-dim); margin: 20px 0 6px 12px; }
+  .sidebar a {
+    display: block; padding: 6px 12px; border-radius: 6px; font-size: .8125rem;
+    font-weight: 500; color: var(--text-muted); transition: all .12s;
+    border-left: 2px solid transparent;
+  }
+  .sidebar a:hover { color: var(--text); background: var(--bg-hover); text-decoration: none; }
+  .sidebar a.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-subtle); }
+  .content { flex: 1; min-width: 0; padding: 32px 0 80px; }
+
+  @media (min-width: 1024px) { .sidebar { display: block; } }
+
+  /* ── Sections ── */
+  .section { margin-bottom: 48px; scroll-margin-top: 80px; }
+  .section-label {
+    display: inline-block; font-size: .7rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--accent); margin-bottom: .5rem;
+  }
+
+  /* ── Features Grid ── */
+  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 1.5rem 0; }
+  .feature-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    padding: 20px; transition: all .2s;
+  }
+  .feature-card:hover { border-color: var(--accent-subtle); transform: translateY(-2px); }
+  .feature-card .icon { font-size: 1.25rem; margin-bottom: .5rem; }
+  .feature-card h4 { font-size: .9375rem; font-weight: 600; margin-bottom: .25rem; }
+  .feature-card p { font-size: .8125rem; margin: 0; color: var(--text-dim); }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 0; background: var(--bg-card); border-radius: var(--radius) var(--radius) 0 0; border: 1px solid var(--border); border-bottom: none; overflow: hidden; }
+  .tabs button {
+    padding: 8px 16px; border: none; background: transparent; cursor: pointer;
+    font-size: .75rem; font-weight: 500; color: var(--text-dim);
+    transition: all .12s; border-bottom: 2px solid transparent;
+    font-family: inherit;
+  }
+  .tabs button:hover { color: var(--text-muted); background: var(--bg-hover); }
+  .tabs button.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(59,130,246,.08); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── Code Blocks ── */
+  .code-block {
+    background: var(--bg-code); border: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius);
+    overflow: hidden;
+  }
+  .code-block pre { padding: 20px; overflow-x: auto; font-size: .8125rem; line-height: 1.7; tab-size: 2; margin: 0; }
+  .kw { color: var(--purple); } .fn { color: var(--accent-glow); } .str { color: var(--green); }
+  .num { color: var(--amber); } .cm { color: var(--text-dim); font-style: italic; } .tp { color: #22d3ee; }
+  .op { color: var(--rose); } .pr { color: #fbbf24; }
+
+  /* ── Tables ── */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); margin: 1rem 0; }
+  table { width: 100%; border-collapse: collapse; font-size: .8125rem; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  th { font-weight: 600; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); background: var(--bg-card); }
+  td { color: var(--text-muted); vertical-align: top; }
+  tr:hover td { background: rgba(59,130,246,.04); }
+  .fn-name { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 500; white-space: nowrap; }
+  .prop-name { font-family: 'JetBrains Mono', monospace; font-size: .8rem; font-weight: 500; white-space: nowrap; }
+  .prop-type { font-family: 'JetBrains Mono', monospace; font-size: .75rem; color: var(--amber); }
+  .prop-default { font-family: 'JetBrains Mono', monospace; font-size: .75rem; color: var(--text-dim); }
+  .prop-desc { color: var(--text-muted); }
+
+  /* ── Live Demo ── */
+  .live-demo {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    padding: 24px; margin: 1.5rem 0;
+  }
+  .live-demo h4 { font-size: .9rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+  .live-demo .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+  .live-demo .col { flex: 1; min-width: 200px; }
+  .live-demo label { display: block; font-size: .75rem; font-weight: 500; margin-bottom: 4px; color: var(--text-dim); }
+  .live-demo input, .live-demo select {
+    width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: .8125rem; font-family: 'JetBrains Mono', monospace;
+    background: var(--bg); color: var(--text); outline: none; transition: border-color .15s;
+  }
+  .live-demo input:focus, .live-demo select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+  .live-demo .result { margin-top: 8px; padding: 8px 12px; border-radius: 6px; font-size: .8125rem; font-family: 'JetBrains Mono', monospace; min-height: 36px; border: 1px solid var(--border); }
+  .live-demo .result.ok { background: rgba(34,197,94,.1); color: var(--green); border-color: rgba(34,197,94,.2); }
+  .live-demo .result.err { background: rgba(244,67,54,.1); color: var(--rose); border-color: rgba(244,67,54,.2); }
+  .demo-switch { display: flex; gap: 6px; margin-bottom: 12px; }
+  .demo-switch button {
+    padding: 4px 14px; border: 1px solid var(--border); border-radius: 16px;
+    background: transparent; cursor: pointer; font-size: .75rem; font-weight: 500; color: var(--text-dim);
+    transition: all .12s; font-family: inherit;
+  }
+  .demo-switch button:hover { border-color: var(--text-muted); color: var(--text-muted); }
+  .demo-switch button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .grid-preview { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-top: 8px; }
+  .grid-preview .gcell { text-align: center; padding: 4px 2px; font-size: .7rem; border-radius: 4px; transition: background .12s; }
+  .grid-preview .gcell:hover { background: var(--bg-hover); }
+  .grid-preview .gcell.other { opacity: .25; }
+  .grid-preview .gcell.today { background: var(--accent-subtle); font-weight: 700; color: var(--accent-glow); }
+  .grid-preview .gcell .gbs { font-size: .8125rem; }
+  .grid-preview .gcell .gad { font-size: .625rem; color: var(--text-dim); }
+
+  /* ── Stats ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 1.5rem 0; }
+  .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; text-align: center; }
+  .stat-card .num { font-size: 1.75rem; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat-card p { font-size: .75rem; color: var(--text-dim); margin: 4px 0 0; }
+
+  /* ── Footer ── */
+  footer { text-align: center; padding: 32px 0; border-top: 1px solid var(--border); font-size: .8125rem; color: var(--text-dim); }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <a href="#" class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><text x="12" y="17" text-anchor="middle" fill="currentColor" font-size="8" font-weight="700">BS</text></svg>
+      bs<span>·</span>calendar
+    </a>
+    <nav>
+      <a href="#">Home</a>
+      <a href="#docs">Docs</a>
+      <a href="#api">API</a>
+      <a href="https://github.com" class="nav-cta">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-badges">
+      <span>📦 Zero deps</span>
+      <span>🎯 2.8 KB gzip</span>
+      <span>🇳🇵 BS 2000–2090</span>
+      <span>⚛️ React</span>
+      <span>📘 TypeScript</span>
+    </div>
+    <h1>Bikram Sambat Calendar<br>for <em>Modern JavaScript</em></h1>
+    <p class="subtitle">Zero-dependency BS ↔ AD conversion with O(1) lookups, React components, Devanagari support, and interactive date pickers.</p>
+    <div class="hero-actions">
+      <a href="#docs" class="btn btn-primary">Get Started →</a>
+      <a href="#demo" class="btn btn-secondary">Live Demo</a>
+    </div>
+  </div>
+</section>
+
+<div class="page" id="docs">
+<aside class="sidebar">
+  <h5>Getting Started</h5>
+  <a href="#install" class="active">Installation</a>
+  <a href="#usage">Basic Usage</a>
+  <a href="#nepali">Nepali Formatting</a>
+  <a href="#grids">Calendar Grids</a>
+  <h5>Components</h5>
+  <a href="#component">BSCalendar</a>
+  <a href="#datepicker">BSDatePicker</a>
+  <h5>Guide</h5>
+  <a href="#formatdate">Date Formatting</a>
+  <a href="#styling">Styling</a>
+  <a href="#events">Events &amp; Holidays</a>
+  <h5>Reference</h5>
+  <a href="#api">API Reference</a>
+  <a href="#demo">Live Demo</a>
+</aside>
+
+<main class="content">
+
+<!-- ── Installation ── -->
+<div class="section" id="install">
+  <span class="section-label">Getting Started</span>
+  <h2>Installation</h2>
+
+  <div class="tabs" id="install-tabs">
+    <button class="active" data-tab="npm">npm</button>
+    <button data-tab="yarn">yarn</button>
+    <button data-tab="pnpm">pnpm</button>
+  </div>
+  <div class="code-block">
+    <div class="tab-content active" id="tab-npm"><pre><code><span class="cm"># Install the package</span>
+npm install bs-calendar
+
+<span class="cm"># With React components (optional peer dep)</span>
+npm install bs-calendar react</code></pre></div>
+    <div class="tab-content" id="tab-yarn"><pre><code>yarn add bs-calendar</code></pre></div>
+    <div class="tab-content" id="tab-pnpm"><pre><code>pnpm add bs-calendar</code></pre></div>
+  </div>
+</div>
+
+<!-- ── Usage ── -->
+<div class="section" id="usage">
+  <h3>Basic Usage</h3>
+
+  <div class="tabs" id="usage-tabs">
+    <button class="active" data-tab="esm">ESM</button>
+    <button data-tab="cjs">CJS</button>
+  </div>
+  <div class="code-block">
+    <div class="tab-content active" id="tab-esm"><pre><code><span class="kw">import</span> { <span class="fn">toAD</span>, <span class="fn">toBS</span>, <span class="fn">toBSString</span>, <span class="fn">daysInMonth</span>, <span class="fn">todayBS</span> } <span class="kw">from</span> <span class="str">'bs-calendar'</span>
+
+<span class="cm">// BS → AD</span>
+<span class="kw">const</span> <span class="fn">adDate</span> = <span class="fn">toAD</span>(<span class="num">2080</span>, <span class="num">1</span>, <span class="num">1</span>)
+<span class="cm">// → Date('2023-04-14')  — Nepali New Year</span>
+
+<span class="cm">// AD → BS</span>
+<span class="kw">const</span> <span class="fn">bs</span> = <span class="fn">toBS</span>(<span class="kw">new</span> <span class="fn">Date</span>())
+<span class="cm">// → { year: 2080, month: 1, day: 14 }</span>
+
+<span class="cm">// Format</span>
+<span class="fn">toBSString</span>(<span class="kw">new</span> <span class="fn">Date</span>())           <span class="cm">// "2080-01-14"</span>
+<span class="fn">todayBS</span>()                         <span class="cm">// { year, month, day }</span>
+<span class="fn">daysInMonth</span>(<span class="num">2080</span>, <span class="num">1</span>)            <span class="cm">// 30</span></code></pre></div>
+    <div class="tab-content" id="tab-cjs"><pre><code><span class="kw">const</span> { <span class="fn">toAD</span>, <span class="fn">toBS</span>, <span class="fn">daysInMonth</span> } = <span class="fn">require</span>(<span class="str">'bs-calendar'</span>)
+
+<span class="kw">const</span> <span class="fn">ad</span> = <span class="fn">toAD</span>(<span class="num">2080</span>, <span class="num">1</span>, <span class="num">1</span>)
+console.<span class="fn">log</span>(ad) <span class="cm">// Date('2023-04-14')</span></code></pre></div>
+  </div>
+</div>
+
+<!-- ── Nepali Formatting ── -->
+<div class="section" id="nepali">
+  <h3>Nepali (Devanagari) Formatting</h3>
+  <div class="code-block">
+    <pre><code><span class="kw">import</span> { <span class="fn">toDevanagariNumeral</span>, <span class="fn">toFormattedNepaliBS</span>, <span class="fn">nepaliMonthName</span> } <span class="kw">from</span> <span class="str">'bs-calendar'</span>
+
+<span class="fn">toDevanagariNumeral</span>(<span class="num">2080</span>)       <span class="cm">// "२०८०"</span>
+<span class="fn">nepaliMonthName</span>(<span class="num">1</span>)              <span class="cm">// "वैशाख"</span>
+<span class="fn">toFormattedNepaliBS</span>(<span class="kw">new</span> <span class="fn">Date</span>(<span class="str">'2023-04-14'</span>))
+<span class="cm">// → "२०८० वैशाख १"</span></code></pre>
+  </div>
+</div>
+
+<!-- ── Calendar Grids ── -->
+<div class="section" id="grids">
+  <h3>Calendar Grids</h3>
+  <p>Generate 42-cell grids (6×7, Sun–Sat) for UI rendering. Each cell has both BS and AD dates.</p>
+  <div class="code-block">
+    <pre><code><span class="kw">import</span> { <span class="fn">getMonthGrid</span>, <span class="fn">getADMonthGrid</span> } <span class="kw">from</span> <span class="str">'bs-calendar'</span>
+
+<span class="cm">// BS grid — 42 CalendarCell objects</span>
+<span class="kw">const</span> <span class="fn">bsCells</span> = <span class="fn">getMonthGrid</span>(<span class="num">2080</span>, <span class="num">1</span>)
+<span class="cm">// { bsDay, adDate, isOtherMonth, isToday, ... }</span>
+
+<span class="cm">// AD grid — 42 ADCalendarCell objects</span>
+<span class="kw">const</span> <span class="fn">adCells</span> = <span class="fn">getADMonthGrid</span>(<span class="num">2024</span>, <span class="num">0</span>)</code></pre>
+  </div>
+</div>
+
+<!-- ── React Component ── -->
+<div class="section" id="component">
+  <span class="section-label">Components</span>
+  <h2>BSCalendar</h2>
+  <p>Interactive calendar component with Tailwind, Bootstrap &amp; default themes. Supports events, holidays, and full customization.</p>
+
+  <h3>Minimal</h3>
+  <div class="code-block">
+    <pre><code><span class="kw">import</span> { <span class="fn">BSCalendar</span> } <span class="kw">from</span> <span class="str">'bs-calendar/react'</span>
+
+<span class="op">&lt;</span><span class="fn">BSCalendar</span>
+  view=<span class="str">"both"</span>
+  language=<span class="str">"both"</span>
+  theme=<span class="str">"default"</span>
+  showNavigation
+  onDateSelect={<span class="op">(</span>ad, bs<span class="op">)</span> <span class="op">=></span> console.log(bs)}
+<span class="op">/></span></code></pre>
+  </div>
+
+  <h3>With Events &amp; Holidays</h3>
+  <div class="code-block">
+    <pre><code><span class="kw">import</span> { <span class="fn">BSCalendar</span> } <span class="kw">from</span> <span class="str">'bs-calendar/react'</span>
+<span class="kw">import type</span> { <span class="tp">CalendarEvent</span>, <span class="tp">Holiday</span> } <span class="kw">from</span> <span class="str">'bs-calendar/react'</span>
+
+<span class="kw">const</span> events: <span class="tp">CalendarEvent</span>[] = [
+  { id: <span class="str">'1'</span>, title: <span class="str">'Meeting'</span>,  date: <span class="str">'2024-01-15'</span>, time: <span class="str">'10:00'</span>, color: <span class="str">'#2563eb'</span> },
+  { id: <span class="str">'2'</span>, title: <span class="str">'Festival'</span>, date: <span class="str">'2080-10-15'</span>, dateType: <span class="str">'bs'</span>, color: <span class="str">'#f59e0b'</span> },
+]
+
+<span class="kw">const</span> holidays: <span class="tp">Holiday</span>[] = [
+  { date: <span class="str">'2080-10-15'</span>, dateType: <span class="str">'bs'</span>, name: <span class="str">'Maghe Sankranti'</span>, nameNP: <span class="str">'माघे सङ्क्रान्ति'</span> },
+]
+
+<span class="op">&lt;</span><span class="fn">BSCalendar</span>
+  theme=<span class="str">"tailwind"</span>
+  events={<span class="fn">events</span>}
+  holidays={<span class="fn">holidays</span>}
+  showEventList showHolidayLabels
+  onEventClick={<span class="op">(</span>ev<span class="op">)</span> <span class="op">=></span> alert(ev.title)}
+<span class="op">/></span></code></pre>
+  </div>
+
+  <h3>Props</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td class="prop-name">view</td><td class="prop-type">'bs' | 'ad' | 'both'</td><td class="prop-default">'both'</td><td class="prop-desc">Calendar to display in cells</td></tr>
+        <tr><td class="prop-name">language</td><td class="prop-type">'nepali' | 'english' | 'both'</td><td class="prop-default">'both'</td><td class="prop-desc">Header &amp; number language</td></tr>
+        <tr><td class="prop-name">theme</td><td class="prop-type">'default' | 'tailwind' | 'bootstrap'</td><td class="prop-default">'default'</td><td class="prop-desc">Styling framework</td></tr>
+        <tr><td class="prop-name">events</td><td class="prop-type">CalendarEvent[]</td><td class="prop-default">[]</td><td class="prop-desc">Events per cell</td></tr>
+        <tr><td class="prop-name">holidays</td><td class="prop-type">Holiday[]</td><td class="prop-default">[]</td><td class="prop-desc">Holidays per cell</td></tr>
+        <tr><td class="prop-name">showNavigation</td><td class="prop-type">boolean</td><td class="prop-default">true</td><td class="prop-desc">Prev/next buttons</td></tr>
+        <tr><td class="prop-name">showEventList</td><td class="prop-type">boolean</td><td class="prop-default">false</td><td class="prop-desc">Event titles in cells</td></tr>
+        <tr><td class="prop-name">showHolidayLabels</td><td class="prop-type">boolean</td><td class="prop-default">true</td><td class="prop-desc">Holiday names in cells</td></tr>
+        <tr><td class="prop-name">maxVisibleEvents</td><td class="prop-type">number</td><td class="prop-default">2</td><td class="prop-desc">Max before "+more"</td></tr>
+        <tr><td class="prop-name">onDateSelect</td><td class="prop-type">(ad, bs) => void</td><td class="prop-default">—</td><td class="prop-desc">Day click handler</td></tr>
+        <tr><td class="prop-name">onEventClick</td><td class="prop-type">(event, ad) => void</td><td class="prop-default">—</td><td class="prop-desc">Event click handler</td></tr>
+        <tr><td class="prop-name">renderDay</td><td class="prop-type">(data) => ReactNode</td><td class="prop-default">—</td><td class="prop-desc">Custom cell renderer</td></tr>
+        <tr><td class="prop-name">classNames</td><td class="prop-type">BSCalendarClassNames</td><td class="prop-default">—</td><td class="prop-desc">Override CSS classes</td></tr>
+        <tr><td class="prop-name">styles</td><td class="prop-type">BSCalendarStyles</td><td class="prop-default">—</td><td class="prop-desc">Override inline styles</td></tr>
+        <tr><td class="prop-name">dateFormat</td><td class="prop-type">string</td><td class="prop-default">—</td><td class="prop-desc">Display format for cells</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Date Picker ── -->
+<div class="section" id="datepicker">
+  <h2>BSDatePicker</h2>
+  <p>Date input with interactive calendar dropdown. Supports AD and BS modes with auto-conversion between them.</p>
+
+  <div class="tabs" id="dp-tabs">
+    <button class="active" data-tab="dp-basic">Basic</button>
+    <button data-tab="dp-auto">Auto-Convert</button>
+  </div>
+  <div class="code-block">
+    <div class="tab-content active" id="tab-dp-basic"><pre><code><span class="kw">import</span> { <span class="fn">BSDatePicker</span> } <span class="kw">from</span> <span class="str">'bs-calendar/date-picker'</span>
+
+<span class="op">&lt;</span><span class="fn">BSDatePicker</span>
+  mode=<span class="str">"both"</span>
+  theme=<span class="str">"default"</span>
+  placeholder=<span class="str">"Select date..."</span>
+  onChange={<span class="op">(</span>ad, bs<span class="op">)</span> <span class="op">=></span> console.log(ad, bs)}
+<span class="op">/></span></code></pre></div>
+    <div class="tab-content" id="tab-dp-auto"><pre><code><span class="op">&lt;</span><span class="fn">BSDatePicker</span>
+  mode=<span class="str">"both"</span>
+  theme=<span class="str">"tailwind"</span>
+  <span class="cm">{/* Type "2080-01-01" → auto-converts to AD 2023-04-14 */}</span>
+  <span class="cm">{/* Type "2023-04-14" → auto-converts to BS 2080-01-01 */}</span>
+  onChange={<span class="op">(</span>adDate, bs<span class="op">)</span> <span class="op">=></span> {
+    <span class="fn">console</span>.log(<span class="str">'AD:'</span>, adDate.toISOString())
+    <span class="fn">console</span>.log(<span class="str">'BS:'</span>, bs)
+  }}
+<span class="op">/></span></code></pre></div>
+  </div>
+
+  <h3>Props</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td class="prop-name">mode</td><td class="prop-type">'ad' | 'bs' | 'both'</td><td class="prop-default">'both'</td><td class="prop-desc">Calendar mode</td></tr>
+        <tr><td class="prop-name">value</td><td class="prop-type">Date</td><td class="prop-default">—</td><td class="prop-desc">Controlled value</td></tr>
+        <tr><td class="prop-name">onChange</td><td class="prop-type">(ad, bs) => void</td><td class="prop-default">—</td><td class="prop-desc">Returns both AD &amp; BS</td></tr>
+        <tr><td class="prop-name">theme</td><td class="prop-type">'default' | 'tailwind' | 'bootstrap'</td><td class="prop-default">'default'</td><td class="prop-desc">Styling framework</td></tr>
+        <tr><td class="prop-name">events</td><td class="prop-type">CalendarEvent[]</td><td class="prop-default">[]</td><td class="prop-desc">Events in dropdown</td></tr>
+        <tr><td class="prop-name">holidays</td><td class="prop-type">Holiday[]</td><td class="prop-default">[]</td><td class="prop-desc">Holidays in dropdown</td></tr>
+        <tr><td class="prop-name">dateFormat</td><td class="prop-type">string</td><td class="prop-default">—</td><td class="prop-desc">Display format</td></tr>
+        <tr><td class="prop-name">placement</td><td class="prop-type">string</td><td class="prop-default">'bottom-start'</td><td class="prop-desc">Dropdown position</td></tr>
+        <tr><td class="prop-name">renderInput</td><td class="prop-type">(props) => ReactNode</td><td class="prop-default">—</td><td class="prop-desc">Custom input</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Date Formatting ── -->
+<div class="section" id="formatdate">
+  <span class="section-label">Guide</span>
+  <h2>Date Formatting</h2>
+  <p>Use <code>formatBSDate</code> and <code>formatADDate</code> for custom date output in any format.</p>
+
+  <div class="code-block">
+    <pre><code><span class="kw">import</span> { <span class="fn">formatBSDate</span>, <span class="fn">formatADDate</span> } <span class="kw">from</span> <span class="str">'bs-calendar'</span>
+
+<span class="fn">formatBSDate</span>(<span class="kw">new</span> <span class="fn">Date</span>(), <span class="str">'YYYY-MM-DD'</span>)       <span class="cm">// "2080-01-15"</span>
+<span class="fn">formatBSDate</span>(<span class="kw">new</span> <span class="fn">Date</span>(), <span class="str">'DD MMMM YYYY'</span>)      <span class="cm">// "15 Baisakh 2080"</span>
+<span class="fn">formatBSDate</span>(<span class="kw">new</span> <span class="fn">Date</span>(), <span class="str">'YYYY MMMM-NP DD'</span>)   <span class="cm">// "2080 वैशाख 01"</span>
+
+<span class="fn">formatADDate</span>(<span class="kw">new</span> <span class="fn">Date</span>(), <span class="str">'DD/MM/YYYY'</span>)       <span class="cm">// "15/01/2024"</span></code></pre>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Token</th><th>Output</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td class="prop-name">YYYY</td><td class="prop-desc">4-digit year</td><td>2080</td></tr>
+        <tr><td class="prop-name">YYYY-NP</td><td class="prop-desc">Devanagari year</td><td>२०८०</td></tr>
+        <tr><td class="prop-name">MM / DD</td><td class="prop-desc">2-digit month/day</td><td>01 / 15</td></tr>
+        <tr><td class="prop-name">M / D</td><td class="prop-desc">No padding</td><td>1 / 15</td></tr>
+        <tr><td class="prop-name">DD-NP / D-NP</td><td class="prop-desc">Devanagari day</td><td>१५</td></tr>
+        <tr><td class="prop-name">MMMM</td><td class="prop-desc">Full month name</td><td>Baisakh</td></tr>
+        <tr><td class="prop-name">MMMM-NP</td><td class="prop-desc">Nepali month</td><td>वैशाख</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Styling ── -->
+<div class="section" id="styling">
+  <h2>Styling</h2>
+  <p>Three ways to customize appearance — from per-element inline styles to full custom cell rendering.</p>
+
+  <div class="tabs" id="style-tabs">
+    <button class="active" data-tab="style-inline">Inline Styles</button>
+    <button data-tab="style-tailwind">Tailwind</button>
+    <button data-tab="style-bootstrap">Bootstrap</button>
+  </div>
+  <div class="code-block">
+    <div class="tab-content active" id="tab-style-inline"><pre><code><span class="cm">// Default theme — override per-element styles</span>
+<span class="op">&lt;</span><span class="fn">BSCalendar</span>
+  styles=<span class="op">{</span>{
+    cell: { background: <span class="str">'#1e293b'</span>, borderRadius: <span class="num">6</span> },
+    cellToday: { background: <span class="str">'#1e3a5f'</span>, border: <span class="str">'2px solid #3b82f6'</span> },
+    bsNumber: { color: <span class="str">'#f1f5f9'</span>, fontSize: <span class="num">14</span> },
+    adNumber: { color: <span class="str">'#64748b'</span>, fontSize: <span class="num">10</span> },
+    cellOtherMonth: { opacity: <span class="num">0.15</span> },
+    navButton: { background: <span class="str">'#334155'</span>, border: <span class="str">'none'</span> },
+  }}
+<span class="op">/></span></code></pre></div>
+    <div class="tab-content" id="tab-style-tailwind"><pre><code><span class="op">&lt;</span><span class="fn">BSCalendar</span>
+  theme=<span class="str">"tailwind"</span>
+  classNames=<span class="op">{</span>{
+    cell: <span class="str">'bg-slate-800 hover:bg-slate-700 rounded-lg'</span>,
+    cellToday: <span class="str">'bg-blue-900 ring-2 ring-blue-500 font-bold'</span>,
+    bsNumber: <span class="str">'text-slate-100 text-sm'</span>,
+    adNumber: <span class="str">'text-slate-500 text-xs'</span>,
+    navButton: <span class="str">'px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 border-0 text-white'</span>,
+  }}
+<span class="op">/></span></code></pre></div>
+    <div class="tab-content" id="tab-style-bootstrap"><pre><code><span class="op">&lt;</span><span class="fn">BSCalendar</span>
+  theme=<span class="str">"bootstrap"</span>
+  classNames=<span class="op">{</span>{
+    cellToday: <span class="str">'bg-info bg-opacity-25 fw-bold border-info'</span>,
+    cellWithHoliday: <span class="str">'bg-warning bg-opacity-10'</span>,
+  }}
+<span class="op">/></span></code></pre></div>
+  </div>
+
+  <h3>Styleable Elements</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Key</th><th>Target</th></tr></thead>
+      <tbody>
+        <tr><td class="prop-name">container / header / monthYear</td><td class="prop-desc">Layout elements</td></tr>
+        <tr><td class="prop-name">navButton / navPrev / navNext</td><td class="prop-desc">Navigation buttons</td></tr>
+        <tr><td class="prop-name">cell / cellToday / cellSelected / cellOtherMonth</td><td class="prop-desc">Day cells by state</td></tr>
+        <tr><td class="prop-name">cellWithEvents / cellWithHoliday</td><td class="prop-desc">Cells with data</td></tr>
+        <tr><td class="prop-name">bsNumber / adNumber</td><td class="prop-desc">Date text</td></tr>
+        <tr><td class="prop-name">eventDot / eventBar / eventList / eventItem</td><td class="prop-desc">Event indicators</td></tr>
+        <tr><td class="prop-name">holidayLabel / moreLink / eventPopup</td><td class="prop-desc">Holiday &amp; overflow</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Events & Holidays ── -->
+<div class="section" id="events">
+  <h2>Events &amp; Holidays</h2>
+  <p>Both <code>BSCalendar</code> and <code>BSDatePicker</code> accept events and holidays. Use <code>dateType: 'bs'</code> for BS dates.</p>
+  <div class="code-block">
+    <pre><code><span class="kw">import type</span> { <span class="tp">CalendarEvent</span>, <span class="tp">Holiday</span> } <span class="kw">from</span> <span class="str">'bs-calendar/react'</span>
+
+<span class="cm">// AD and BS dates are both supported</span>
+<span class="kw">const</span> events: <span class="tp">CalendarEvent</span>[] = [
+  { id: <span class="str">'1'</span>, title: <span class="str">'Meeting'</span>,       date: <span class="str">'2024-01-15'</span>,           color: <span class="str">'#3b82f6'</span> },
+  { id: <span class="str">'2'</span>, title: <span class="str">'Nepali New Year'</span>, date: <span class="str">'2081-01-01'</span>, dateType: <span class="str">'bs'</span>, color: <span class="str">'#22c55e'</span> },
+]
+
+<span class="kw">const</span> holidays: <span class="tp">Holiday</span>[] = [
+  { date: <span class="str">'2081-01-01'</span>, dateType: <span class="str">'bs'</span>, name: <span class="str">'New Year'</span>, nameNP: <span class="str">'नयाँ वर्ष'</span> },
+]</code></pre>
+  </div>
+  <p><strong>CalendarEvent</strong> fields: <code>id</code>, <code>title</code>, <code>date</code>, <code>dateType?</code>, <code>endDate?</code>, <code>color?</code>, <code>time?</code>, <code>description?</code>, <code>location?</code>, <code>allDay?</code>, <code>type?</code></p>
+  <p><strong>Holiday</strong> fields: <code>date</code>, <code>dateType?</code>, <code>name</code>, <code>nameNP?</code>, <code>type?</code>, <code>color?</code></p>
+</div>
+
+<!-- ── API Reference ── -->
+<div class="section" id="api">
+  <span class="section-label">Reference</span>
+  <h2>API Reference</h2>
+  <p>All exported functions and types from <code>bs-calendar</code>.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Function</th><th>Returns</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td class="fn-name">toAD(bsYear, bsMonth, bsDay)</td><td><code>Date</code></td><td class="prop-desc">BS → AD conversion</td></tr>
+        <tr><td class="fn-name">toBS(date)</td><td><code>{ year, month, day }</code></td><td class="prop-desc">AD → BS conversion</td></tr>
+        <tr><td class="fn-name">daysInMonth(bsYear, bsMonth)</td><td><code>number</code></td><td class="prop-desc">O(1) days in BS month</td></tr>
+        <tr><td class="fn-name">daysInYear(bsYear)</td><td><code>number</code></td><td class="prop-desc">O(1) 365 or 366</td></tr>
+        <tr><td class="fn-name">isValidBS(year, month, day)</td><td><code>boolean</code></td><td class="prop-desc">Validate BS date</td></tr>
+        <tr><td class="fn-name">supportedRange()</td><td><code>{ minYear, maxYear }</code></td><td class="prop-desc">BS 2000–2090</td></tr>
+        <tr><td class="fn-name">todayBS()</td><td><code>{ year, month, day }</code></td><td class="prop-desc">Today in BS</td></tr>
+        <tr><td class="fn-name">toBSString(date)</td><td><code>string</code></td><td class="prop-desc">"2080-01-01"</td></tr>
+        <tr><td class="fn-name">toFormattedBS(date)</td><td><code>string</code></td><td class="prop-desc">"2080 Baisakh 01"</td></tr>
+        <tr><td class="fn-name">monthName(bsMonth)</td><td><code>string</code></td><td class="prop-desc">English month name</td></tr>
+        <tr><td class="fn-name">getMonthGrid(bsYear, bsMonth)</td><td><code>CalendarCell[]</code></td><td class="prop-desc">42-cell BS grid</td></tr>
+        <tr><td class="fn-name">getADMonthGrid(year, month)</td><td><code>ADCalendarCell[]</code></td><td class="prop-desc">42-cell AD grid</td></tr>
+        <tr><td class="fn-name">toDevanagariNumeral(n)</td><td><code>string</code></td><td class="prop-desc">2080 → २०८०</td></tr>
+        <tr><td class="fn-name">nepaliMonthName(bsMonth)</td><td><code>string</code></td><td class="prop-desc">वैशाख–चैत्र</td></tr>
+        <tr><td class="fn-name">nepaliDayName(date)</td><td><code>string</code></td><td class="prop-desc">आइतबार–शनिबार</td></tr>
+        <tr><td class="fn-name">toNepaliBSString(date)</td><td><code>string</code></td><td class="prop-desc">२०८०-०१-०१</td></tr>
+        <tr><td class="fn-name">toFormattedNepaliBS(date)</td><td><code>string</code></td><td class="prop-desc">२०८० वैशाख १</td></tr>
+        <tr><td class="fn-name">formatBSDate(date, format)</td><td><code>string</code></td><td class="prop-desc">Custom format</td></tr>
+        <tr><td class="fn-name">formatADDate(date, format)</td><td><code>string</code></td><td class="prop-desc">Custom format</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Error Classes</h3>
+  <p><code>BSRangeError</code> — thrown when year is outside supported range.<br>
+  <code>BSInvalidDateError</code> — thrown when day/month is invalid.</p>
+</div>
+
+<!-- ── Data ── -->
+<div class="section">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="num">91</div><p>Years of data</p></div>
+    <div class="stat-card"><div class="num">32,878</div><p>Total days</p></div>
+    <div class="stat-card"><div class="num">2.8 KB</div><p>Gzipped bundle</p></div>
+    <div class="stat-card"><div class="num">0</div><p>Runtime deps</p></div>
+  </div>
+</div>
+
+<!-- ── Live Demo ── -->
+<div class="section" id="demo">
+  <span class="section-label">Interactive</span>
+  <h2>Live Demo</h2>
+  <p>Try the built package running in your browser — powered by the actual <code>dist/index.js</code> ESM build.</p>
+
+  <div class="live-demo">
+    <h4>🔄 BS ↔ AD Converter</h4>
+    <div class="demo-switch" id="conv-switch">
+      <button class="active" data-mode="bs-to-ad">BS → AD</button>
+      <button data-mode="ad-to-bs">AD → BS</button>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label for="demo-input">Enter date</label>
+        <input id="demo-input" type="text" value="2080-01-01" placeholder="YYYY-MM-DD">
+      </div>
+      <div class="col">
+        <label>Result</label>
+        <div class="result ok" id="demo-result">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="live-demo">
+    <h4>📅 Live Calendar Grid</h4>
+    <div class="row" style="margin-bottom:12px">
+      <div class="col">
+        <label>BS Year</label>
+        <input id="cal-year" type="number" value="2080" min="2000" max="2090">
+      </div>
+      <div class="col">
+        <label>BS Month</label>
+        <select id="cal-month">
+          <option value="1">Baisakh</option><option value="2">Jestha</option><option value="3">Ashad</option>
+          <option value="4">Shrawan</option><option value="5">Bhadra</option><option value="6">Ashwin</option>
+          <option value="7">Kartik</option><option value="8">Mangsir</option><option value="9">Poush</option>
+          <option value="10">Magh</option><option value="11">Falgun</option><option value="12">Chaitra</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid-preview" id="demo-grid"></div>
+  </div>
+
+  <div class="live-demo">
+    <h4>🔢 Devanagari Converter</h4>
+    <div class="row">
+      <div class="col">
+        <label>Number</label>
+        <input id="demo-num" type="number" value="2080">
+      </div>
+      <div class="col">
+        <label>Devanagari</label>
+        <div class="result ok" id="demo-deva-result">२०८०</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<footer>
+  <p>bs-calendar — MIT License. Built for the Nepali developer community.</p>
+</footer>
+
+<script>
+// Tab switching
+document.querySelectorAll('.tabs').forEach(tabs => {
+  tabs.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const parent = tabs.parentElement;
+      tabs.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      parent.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+      const target = parent.querySelector('#tab-' + btn.dataset.tab);
+      if (target) target.classList.add('active');
+    });
+  });
+});
+
+// Sidebar active link tracking
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+      const id = entry.target.id;
+      const link = document.querySelector(`.sidebar a[href="#${id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-80px 0px -60% 0px' });
+document.querySelectorAll('.section, .section[id]').forEach(el => observer.observe(el));
+</script>
+
+<script>
+(async function() {
+  // Load the built module — works via HTTP server, not from file://
+  let mod;
+  try {
+    mod = await import('../dist/index.js');
+  } catch (e) {
+    document.querySelectorAll('.live-demo').forEach(el => {
+      el.innerHTML = '<h4 style="color:var(--rose)">⚠️ Live demo requires a local server</h4>' +
+        '<p style="font-size:.8125rem">Open a terminal and run:</p>' +
+        '<pre style="background:var(--bg-code);padding:12px;border-radius:6px;font-size:.8125rem;margin:8px 0">npx serve docs</pre>' +
+        '<p style="font-size:.8125rem">from the <code>bs-calendar</code> directory, then open the URL shown.</p>';
+    });
+    return;
+  }
+
+  const { toAD, toBS, getMonthGrid, toDevanagariNumeral, isValidBS } = mod;
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  function bsMonthName(m) { return ['Baisakh','Jestha','Ashad','Shrawan','Bhadra','Ashwin','Kartik','Mangsir','Poush','Magh','Falgun','Chaitra'][m - 1]; }
+
+  // Converter
+  const modeBtns = document.querySelectorAll('#conv-switch button');
+  const demoInput = document.getElementById('demo-input');
+  const demoResult = document.getElementById('demo-result');
+  let convMode = 'bs-to-ad';
+  modeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      modeBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      convMode = btn.dataset.mode;
+      demoInput.placeholder = convMode === 'bs-to-ad' ? '2080-01-01' : '2023-04-14';
+      updateConv();
+    });
+  });
+  function updateConv() {
+    const val = demoInput.value.trim();
+    const parts = val.split(/[-\/]/).map(Number);
+    if (parts.length !== 3 || parts.some(isNaN)) { demoResult.className = 'result err'; demoResult.textContent = 'Enter YYYY-MM-DD'; return; }
+    try {
+      if (convMode === 'bs-to-ad') {
+        const [y, m, d] = parts;
+        if (!isValidBS(y, m, d)) throw Error('Invalid BS date');
+        const ad = toAD(y, m, d);
+        demoResult.className = 'result ok';
+        demoResult.textContent = `${ad.toISOString().slice(0,10)} (${DAYS[ad.getDay()]})`;
+      } else {
+        const [y, m, d] = parts;
+        const date = new Date(y, m - 1, d);
+        if (date.getFullYear() !== y || date.getMonth() !== m - 1) throw Error('Invalid AD date');
+        const bs = toBS(date);
+        demoResult.className = 'result ok';
+        demoResult.textContent = `${bs.year}-${String(bs.month).padStart(2,'0')}-${String(bs.day).padStart(2,'0')} (${bsMonthName(bs.month)})`;
+      }
+    } catch (e) { demoResult.className = 'result err'; demoResult.textContent = e.message; }
+  }
+  demoInput.addEventListener('input', updateConv);
+
+  // Grid
+  const calYear = document.getElementById('cal-year');
+  const calMonth = document.getElementById('cal-month');
+  const demoGrid = document.getElementById('demo-grid');
+  function updateGrid() {
+    const y = parseInt(calYear.value), m = parseInt(calMonth.value);
+    if (isNaN(y) || isNaN(m)) return;
+    try {
+      const grid = getMonthGrid(y, m);
+      demoGrid.innerHTML = '';
+      DAYS.forEach(d => { const el = document.createElement('div'); el.style.cssText = 'text-align:center;padding:4px 2px;font-size:.65rem;font-weight:600;color:var(--text-dim)'; el.textContent = d; demoGrid.appendChild(el); });
+      grid.forEach(cell => {
+        const el = document.createElement('div');
+        el.className = 'gcell' + (cell.isOtherMonth ? ' other' : '') + (cell.isToday ? ' today' : '');
+        el.innerHTML = `<div class="gbs">${cell.bsDay}</div><div class="gad">${cell.adDate.getDate()}</div>`;
+        demoGrid.appendChild(el);
+      });
+    } catch (e) { demoGrid.textContent = 'Error: ' + e.message; }
+  }
+  calYear.addEventListener('input', updateGrid);
+  calMonth.addEventListener('change', updateGrid);
+
+  // Devanagari
+  const demoNum = document.getElementById('demo-num');
+  const demoDeva = document.getElementById('demo-deva-result');
+  function updateDeva() { const n = parseInt(demoNum.value); demoDeva.textContent = isNaN(n) ? '' : toDevanagariNumeral(n); }
+  demoNum.addEventListener('input', updateDeva);
+
+  updateConv(); updateGrid(); updateDeva();
+})();
+</script>
+
+</body>
+</html>
