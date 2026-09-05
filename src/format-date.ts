@@ -1,6 +1,7 @@
 import { toBS } from './core/convert'
 import { toDevanagariNumeral, nepaliMonthName } from './nepali'
 import { monthName } from './format'
+import { EN_MONTH_NAMES } from './grid'
 
 export type DateFormatToken =
   | 'YYYY' | 'YY'
@@ -15,40 +16,52 @@ function pad(n: number): string {
   return String(n).padStart(2, '0')
 }
 
+/**
+ * Replace longest tokens first so `MM` inside an already-substituted value can
+ * never be re-replaced. Uses a single-pass regex over a token alternation so
+ * substituted text (e.g. Devanagari or month names) is never rescanned.
+ */
 function applyTokens(template: string, tokens: Record<string, string>): string {
-  const sorted = Object.keys(tokens).sort((a, b) => b.length - a.length)
-  let result = template
-  for (const key of sorted) {
-    result = result.split(key).join(tokens[key]!)
-  }
-  return result
+  const keys = Object.keys(tokens).sort((a, b) => b.length - a.length)
+  if (keys.length === 0) return template
+  const re = new RegExp(keys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g')
+  return template.replace(re, matched => tokens[matched]!)
 }
 
 export function formatADDate(date: Date, format: string): string {
+  const { year, month, day } = {
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+  }
+  const monthEn = EN_MONTH_NAMES[month - 1]!
   return applyTokens(format, {
-    'YYYY': String(date.getFullYear()),
-    'YY': String(date.getFullYear()).slice(-2),
-    'MM': pad(date.getMonth() + 1),
-    'M': String(date.getMonth() + 1),
-    'DD': pad(date.getDate()),
-    'D': String(date.getDate()),
+    'YYYY': String(year),
+    'YY': String(year).slice(-2),
+    'MMMM': monthEn,
+    'MMM': monthEn.slice(0, 3),
+    'MM': pad(month),
+    'M': String(month),
+    'DD': pad(day),
+    'D': String(day),
   })
 }
 
 export function formatBSDate(date: Date, format: string): string {
-  const bs = toBS(date)
+  const { year, month, day } = toBS(date)
+  const monthEn = monthName(month)
   return applyTokens(format, {
-    'YYYY-NP': toDevanagariNumeral(bs.year),
-    'YYYY': String(bs.year),
-    'YY': String(bs.year).slice(-2),
-    'MMMM-NP': nepaliMonthName(bs.month),
-    'MMMM': monthName(bs.month),
-    'MMM': monthName(bs.month).slice(0, 3),
-    'MM': pad(bs.month),
-    'M': String(bs.month),
-    'DD-NP': toDevanagariNumeral(bs.day),
-    'DD': pad(bs.day),
-    'D-NP': toDevanagariNumeral(bs.day),
-    'D': String(bs.day),
+    'YYYY-NP': toDevanagariNumeral(year),
+    'YYYY': String(year),
+    'YY': String(year).slice(-2),
+    'MMMM-NP': nepaliMonthName(month),
+    'MMMM': monthEn,
+    'MMM': monthEn.slice(0, 4),
+    'MM': pad(month),
+    'M': String(month),
+    'DD-NP': toDevanagariNumeral(day),
+    'DD': pad(day),
+    'D-NP': toDevanagariNumeral(day),
+    'D': String(day),
   })
 }

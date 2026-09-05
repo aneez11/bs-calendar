@@ -15,10 +15,20 @@ describe('Devanagari numerals', () => {
 })
 
 describe('Nepali month names', () => {
-  it('returns correct names for all 12 months', () => {
+  it('returns correct names for all 12 months (Hamro Patro spellings)', () => {
     expect(NEPALI_MONTH_NAMES).toHaveLength(12)
-    expect(nepaliMonthName(1)).toBe('वैशाख')
-    expect(nepaliMonthName(12)).toBe('चैत्र')
+    expect(nepaliMonthName(1)).toBe('बैशाख')
+    expect(nepaliMonthName(2)).toBe('जेठ')
+    expect(nepaliMonthName(3)).toBe('असार')
+    expect(nepaliMonthName(4)).toBe('साउन')
+    expect(nepaliMonthName(5)).toBe('भदौ')
+    expect(nepaliMonthName(6)).toBe('असोज')
+    expect(nepaliMonthName(7)).toBe('कार्तिक')
+    expect(nepaliMonthName(8)).toBe('मंसिर')
+    expect(nepaliMonthName(9)).toBe('पुष')
+    expect(nepaliMonthName(10)).toBe('माघ')
+    expect(nepaliMonthName(11)).toBe('फागुन')
+    expect(nepaliMonthName(12)).toBe('चैत')
   })
 
   it('throws for invalid month', () => {
@@ -45,6 +55,6 @@ describe('toNepaliBSString', () => {
 describe('toFormattedNepaliBS', () => {
   it('formats a date with Nepali month name', () => {
     const result = toFormattedNepaliBS(new Date('2023-04-14T00:00:00.000Z'))
-    expect(result).toBe('२०८० वैशाख १')
+    expect(result).toBe('२०८० बैशाख १')
   })
 })

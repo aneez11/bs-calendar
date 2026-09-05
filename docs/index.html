@@ -342,7 +342,7 @@ console.<span class="fn">log</span>(ad) <span class="cm">// Date('2023-04-14')</
 <div class="section" id="component">
   <span class="section-label">Components</span>
   <h2>BSCalendar</h2>
-  <p>Interactive calendar component with Tailwind, Bootstrap &amp; default themes. Supports events, holidays, and full customization.</p>
+  <p>Interactive calendar component with Tailwind &amp; default themes. Supports events, holidays, and full customization.</p>
 
   <h3>Minimal</h3>
   <div class="code-block">
@@ -387,7 +387,7 @@ console.<span class="fn">log</span>(ad) <span class="cm">// Date('2023-04-14')</
       <tbody>
         <tr><td class="prop-name">view</td><td class="prop-type">'bs' | 'ad' | 'both'</td><td class="prop-default">'both'</td><td class="prop-desc">Calendar to display in cells</td></tr>
         <tr><td class="prop-name">language</td><td class="prop-type">'nepali' | 'english' | 'both'</td><td class="prop-default">'both'</td><td class="prop-desc">Header &amp; number language</td></tr>
-        <tr><td class="prop-name">theme</td><td class="prop-type">'default' | 'tailwind' | 'bootstrap'</td><td class="prop-default">'default'</td><td class="prop-desc">Styling framework</td></tr>
+        <tr><td class="prop-name">theme</td><td class="prop-type">'default' | 'tailwind'</td><td class="prop-default">'default'</td><td class="prop-desc">Styling framework</td></tr>
         <tr><td class="prop-name">events</td><td class="prop-type">CalendarEvent[]</td><td class="prop-default">[]</td><td class="prop-desc">Events per cell</td></tr>
         <tr><td class="prop-name">holidays</td><td class="prop-type">Holiday[]</td><td class="prop-default">[]</td><td class="prop-desc">Holidays per cell</td></tr>
         <tr><td class="prop-name">showNavigation</td><td class="prop-type">boolean</td><td class="prop-default">true</td><td class="prop-desc">Prev/next buttons</td></tr>
@@ -443,7 +443,7 @@ console.<span class="fn">log</span>(ad) <span class="cm">// Date('2023-04-14')</
         <tr><td class="prop-name">mode</td><td class="prop-type">'ad' | 'bs' | 'both'</td><td class="prop-default">'both'</td><td class="prop-desc">Calendar mode</td></tr>
         <tr><td class="prop-name">value</td><td class="prop-type">Date</td><td class="prop-default">—</td><td class="prop-desc">Controlled value</td></tr>
         <tr><td class="prop-name">onChange</td><td class="prop-type">(ad, bs) => void</td><td class="prop-default">—</td><td class="prop-desc">Returns both AD &amp; BS</td></tr>
-        <tr><td class="prop-name">theme</td><td class="prop-type">'default' | 'tailwind' | 'bootstrap'</td><td class="prop-default">'default'</td><td class="prop-desc">Styling framework</td></tr>
+        <tr><td class="prop-name">theme</td><td class="prop-type">'default' | 'tailwind'</td><td class="prop-default">'default'</td><td class="prop-desc">Styling framework</td></tr>
         <tr><td class="prop-name">events</td><td class="prop-type">CalendarEvent[]</td><td class="prop-default">[]</td><td class="prop-desc">Events in dropdown</td></tr>
         <tr><td class="prop-name">holidays</td><td class="prop-type">Holiday[]</td><td class="prop-default">[]</td><td class="prop-desc">Holidays in dropdown</td></tr>
         <tr><td class="prop-name">dateFormat</td><td class="prop-type">string</td><td class="prop-default">—</td><td class="prop-desc">Display format</td></tr>
@@ -494,7 +494,6 @@ console.<span class="fn">log</span>(ad) <span class="cm">// Date('2023-04-14')</
   <div class="tabs" id="style-tabs">
     <button class="active" data-tab="style-inline">Inline Styles</button>
     <button data-tab="style-tailwind">Tailwind</button>
-    <button data-tab="style-bootstrap">Bootstrap</button>
   </div>
   <div class="code-block">
     <div class="tab-content active" id="tab-style-inline"><pre><code><span class="cm">// Default theme — override per-element styles</span>
@@ -516,13 +515,6 @@ console.<span class="fn">log</span>(ad) <span class="cm">// Date('2023-04-14')</
     bsNumber: <span class="str">'text-slate-100 text-sm'</span>,
     adNumber: <span class="str">'text-slate-500 text-xs'</span>,
     navButton: <span class="str">'px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 border-0 text-white'</span>,
-  }}
-<span class="op">/></span></code></pre></div>
-    <div class="tab-content" id="tab-style-bootstrap"><pre><code><span class="op">&lt;</span><span class="fn">BSCalendar</span>
-  theme=<span class="str">"bootstrap"</span>
-  classNames=<span class="op">{</span>{
-    cellToday: <span class="str">'bg-info bg-opacity-25 fw-bold border-info'</span>,
-    cellWithHoliday: <span class="str">'bg-warning bg-opacity-10'</span>,
   }}
 <span class="op">/></span></code></pre></div>
   </div>

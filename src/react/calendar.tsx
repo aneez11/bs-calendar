@@ -1,14 +1,16 @@
 import React, { useState, useCallback, useMemo } from 'react'
 import { toBS, toAD } from '../core/convert'
-import { getMonthGrid, getADMonthGrid } from '../grid'
+import { civilYMD } from '../core/epoch'
+import { getMonthGrid } from '../grid'
 import type { CalendarCell, ADCalendarCell } from '../grid'
-import { toDevanagariNumeral, nepaliMonthName } from '../nepali'
+import { toDevanagariNumeralsIn, nepaliMonthName } from '../nepali'
 import { monthName } from '../format'
 import { formatBSDate } from '../format-date'
+import { minYear, maxYear } from '../data/bs-data.generated'
 
 export type CalendarView = 'bs' | 'ad' | 'both'
 export type CalendarLanguage = 'nepali' | 'english' | 'both'
-export type CalendarTheme = 'default' | 'tailwind' | 'bootstrap'
+export type CalendarTheme = 'default' | 'tailwind'
 
 export interface CalendarEvent {
   id: string
@@ -41,6 +43,8 @@ export interface CellData {
   holidays: Holiday[]
   eventOverflow: boolean
   visibleEvents: number
+  /** True when minDate/maxDate/disablePast/disableFuture/disabledDates rule the day out. */
+  disabled?: boolean
 }
 
 export interface BSCalendarClassNames {
@@ -57,6 +61,7 @@ export interface BSCalendarClassNames {
   cellToday?: string
   cellSelected?: string
   cellOtherMonth?: string
+  cellDisabled?: string
   cellWithEvents?: string
   cellWithHoliday?: string
   bsNumber?: string
@@ -84,6 +89,7 @@ export interface BSCalendarStyles {
   cellToday?: React.CSSProperties
   cellSelected?: React.CSSProperties
   cellOtherMonth?: React.CSSProperties
+  cellDisabled?: React.CSSProperties
   cellWithEvents?: React.CSSProperties
   cellWithHoliday?: React.CSSProperties
   bsNumber?: React.CSSProperties
@@ -110,6 +116,23 @@ export interface BSCalendarProps {
 
   minBSYear?: number
   maxBSYear?: number
+
+  /** Inclusive navigation/selection bounds — days outside render disabled. */
+  minDate?: Date
+  maxDate?: Date
+  /** Disable all days before today. */
+  disablePast?: boolean
+  /** Disable all days after today. */
+  disableFuture?: boolean
+  /** Additional disabled dates (UTC-midnight or local civil — matched by civil key). */
+  disabledDates?: Date[]
+
+  /** Render digits in Devanagari (months header, day numbers, picker UI). */
+  digits?: 'latin' | 'devanagari'
+
+  /** Month/year quick-select dropdowns in the navigation header (reference-style). */
+  enableMonthPicker?: boolean
+  enableYearPicker?: boolean
 
   selectedDate?: Date
   onDateSelect?: (adDate: Date, bs: { year: number; month: number; day: number }) => void
@@ -150,11 +173,12 @@ const defaultStyles: Required<BSCalendarStyles> = {
   monthYear: { fontSize: 16, fontWeight: 600 },
   weekdays: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', fontSize: 12, color: '#666', marginBottom: 4 },
   weekday: { padding: '4px 0' },
-  daysGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1 },
+  daysGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridAutoRows: '1fr', gap: 1 },
   cell: { textAlign: 'center', padding: 4, cursor: 'pointer', borderRadius: 4, minHeight: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', transition: 'background 0.15s', position: 'relative' },
   cellToday: { background: '#e3f2fd', fontWeight: 700 },
   cellSelected: { background: '#bbdefb', fontWeight: 700, border: '2px solid #1976d2' },
   cellOtherMonth: { opacity: 0.3 },
+  cellDisabled: { opacity: 0.35, textDecoration: 'line-through', cursor: 'not-allowed' },
   cellWithEvents: {},
   cellWithHoliday: { background: '#fff3e0' },
   bsNumber: { fontSize: 13, lineHeight: 1.3 },
@@ -178,11 +202,11 @@ const tailwindClasses: Required<BSCalendarClassNames> = {
   monthYear: 'text-base font-semibold text-gray-800',
   weekdays: 'grid grid-cols-7 text-center text-xs text-gray-500 mb-1',
   weekday: 'py-1',
-  daysGrid: 'grid grid-cols-7 gap-0.5',
-  cell: 'text-center p-1 rounded cursor-pointer min-h-[56px] flex flex-col items-center justify-start transition-colors hover:bg-gray-50 relative',
-  cellToday: 'bg-blue-50 font-bold ring-1 ring-blue-300',
+  daysGrid: 'grid grid-cols-7 gap-0.5 auto-rows-fr',
+  cell: 'text-center p-1 rounded cursor-pointer min-h-[56px] flex flex-col items-center justify-start transition-colors hover:bg-gray-50 relative',  cellToday: 'bg-blue-50 font-bold ring-1 ring-blue-300',
   cellSelected: 'bg-blue-100 font-bold ring-2 ring-blue-500',
   cellOtherMonth: 'opacity-30',
+  cellDisabled: 'opacity-40 line-through cursor-not-allowed',
   cellWithEvents: '', cellWithHoliday: 'bg-orange-50',
   bsNumber: 'text-xs leading-tight', adNumber: 'text-[9px] text-gray-400 leading-tight',
   eventDot: 'w-1.5 h-1.5 rounded-full inline-block mx-0.5',
@@ -196,37 +220,16 @@ const tailwindClasses: Required<BSCalendarClassNames> = {
   eventList: '',
 }
 
-const bootstrapClasses: Required<BSCalendarClassNames> = {
-  container: 'bs-calendar',
-  header: 'd-flex align-items-center justify-content-between py-2',
-  navButton: 'btn btn-outline-secondary btn-sm',
-  navPrev: '', navNext: '',
-  monthYear: 'h5 mb-0 fw-semibold',
-  weekdays: 'd-grid text-center small text-muted mb-1',
-  weekday: 'py-1',
-  daysGrid: 'd-grid gap-0',
-  cell: 'text-center p-1 rounded cursor-pointer d-flex flex-column align-items-center justify-content-start position-relative',
-  cellToday: 'bg-info bg-opacity-10 fw-bold border border-info',
-  cellSelected: 'bg-primary bg-opacity-10 fw-bold border border-primary',
-  cellOtherMonth: 'text-muted opacity-50',
-  cellWithEvents: '', cellWithHoliday: 'bg-warning bg-opacity-10',
-  bsNumber: 'small', adNumber: 'smaller text-muted',
-  eventDot: 'd-inline-block rounded-circle mx-0.5',
-  eventBar: 'rounded mt-0.5 w-80',
-  holidayLabel: 'small text-warning-emphasis text-truncate w-100 px-0.5',
-  moreLink: 'small text-primary fw-semibold cursor-pointer',
-  eventPopup: 'position-absolute bottom-100 start-50 translate-middle-x bg-white border border-secondary rounded shadow p-2 z-10 min-w-180px text-start small',
-  eventItem: 'd-flex align-items-center gap-1 py-0.5 small',
-  eventTitle: 'fw-medium',
-  eventTime: 'text-muted',
-  eventList: '',
+function dateToKey(date: Date): string {
+  const { year, month, day } = civilYMD(date)
+  const m = String(month).padStart(2, '0')
+  const d = String(day).padStart(2, '0')
+  return `${year}-${m}-${d}`
 }
 
-function dateToKey(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
+/** Lexicographic compare of BS {y,m,d} triples. */
+function cmpBS(a: { y: number; m: number; d: number }, b: { y: number; m: number; d: number }): number {
+  return a.y !== b.y ? a.y - b.y : a.m !== b.m ? a.m - b.m : a.d - b.d
 }
 
 function resolveDateKey(dateStr: string, dateType?: 'ad' | 'bs'): string {
@@ -240,6 +243,13 @@ function resolveDateKey(dateStr: string, dateType?: 'ad' | 'bs'): string {
     } catch {
       return dateStr
     }
+  }
+  // AD keys are normalized through civilYMD so 'YYYY-M-D' and 'YYYY-MM-DD'
+  // both resolve to the same padded key.
+  const parts = dateStr.split('-')
+  if (parts.length === 3) {
+    const y = Number(parts[0]), m = Number(parts[1]), d = Number(parts[2])
+    if (!isNaN(y) && !isNaN(m) && !isNaN(d)) return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
   }
   return dateStr
 }
@@ -271,21 +281,101 @@ export function BSCalendar({
   showEventList = false,
   showPopupOnHover = false,
   dateFormat,
+  cellAspectRatio = 1,
+  initialDate,
+  minBSYear,
+  maxBSYear,
+  minDate,
+  maxDate,
+  disablePast = false,
+  disableFuture = false,
+  disabledDates,
+  digits = 'latin',
+  enableMonthPicker = false,
+  enableYearPicker = false,
 }: BSCalendarProps) {
   const today = useMemo(() => new Date(), [])
   const bsToday = useMemo(() => toBS(today), [today])
 
-  const [bsYear, setBsYear] = useState(initialBSYear ?? bsToday.year)
-  const [bsMonth, setBsMonth] = useState(initialBSMonth ?? bsToday.month)
+  const initial = useMemo(() => {
+    if (initialBSYear != null && initialBSMonth != null) return { year: initialBSYear, month: initialBSMonth }
+    if (initialDate) {
+      try {
+        const bs = toBS(initialDate)
+        return { year: bs.year, month: bs.month }
+      } catch { /* fall through to today */ }
+    }
+    return { year: bsToday.year, month: bsToday.month }
+  }, [initialBSYear, initialBSMonth, initialDate, bsToday])
+
+  // Navigation bounds (props may narrow the package data range)
+  const minY = minBSYear ?? minYear
+  const maxY = maxBSYear ?? maxYear
+
+  const [bsYear, setBsYear] = useState(() => Math.min(Math.max(initial.year, minY), maxY))
+  const [bsMonth, setBsMonth] = useState(initial.month)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(propSelectedDate)
   const [hoveredCell, setHoveredCell] = useState<string | null>(null)
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false)
+  const [yearPickerOpen, setYearPickerOpen] = useState(false)
 
-  const adFirst = useMemo(() => toAD(bsYear, bsMonth, 1), [bsYear, bsMonth])
-  const adYear = adFirst.getFullYear()
-  const adMonth = adFirst.getMonth()
+  // Digit rendering: 'devanagari' transliterates every Latin digit in the UI.
+  const num = useCallback((n: number | string) => (digits === 'devanagari' ? toDevanagariNumeralsIn(String(n)) : String(n)), [digits])
+
+  // Selection bounds: day-precise epoch limits + year clamp derived from the
+  // minDate/maxDate instants and the BS year-range props.
+  const bounds = useMemo(() => {
+    const dayEpoch = (dt: Date) => {
+      const c = civilYMD(dt)
+      return Math.floor(Date.UTC(c.year, c.month - 1, c.day) / 86400000)
+    }
+    let minBS = { y: minBSYear != null ? Math.max(minBSYear, minYear) : minYear, m: 1, d: 1 }
+    let maxBS = { y: maxBSYear != null ? Math.min(maxBSYear, maxYear) : maxYear, m: 12, d: 31 }
+    let minEd: number | null = null
+    let maxEd: number | null = null
+    if (minDate) {
+      minEd = dayEpoch(minDate)
+      try { const b = toBS(minDate); if (cmpBS({ y: b.year, m: b.month, d: b.day }, minBS) > 0) minBS = { y: b.year, m: b.month, d: b.day } } catch { /* ignore */ }
+    }
+    if (maxDate) {
+      maxEd = dayEpoch(maxDate)
+      try { const b = toBS(maxDate); if (cmpBS({ y: b.year, m: b.month, d: b.day }, maxBS) < 0) maxBS = { y: b.year, m: b.month, d: b.day } } catch { /* ignore */ }
+    }
+    return { todayEd: dayEpoch(today), minEd, maxEd, minBS, maxBS }
+  }, [today, minBSYear, maxBSYear, minDate, maxDate])
+
+  const disabledKeys = useMemo(() => {
+    const set = new Set<string>()
+    for (const d of disabledDates ?? []) set.add(dateToKey(d))
+    return set
+  }, [disabledDates])
+
+  const isDayDisabled = useCallback((cell: CalendarCell) => {
+    if (cell.isOutOfRange) return true
+    let ed: number
+    try { ed = Math.floor(toAD(cell.bsYear, cell.bsMonth, cell.bsDay).getTime() / 86400000) } catch { return true }
+    if (bounds.minEd != null && ed < bounds.minEd) return true
+    if (bounds.maxEd != null && ed > bounds.maxEd) return true
+    if (disablePast && ed < bounds.todayEd) return true
+    if (disableFuture && ed > bounds.todayEd) return true
+    return disabledKeys.has(cell.bsKey)
+  }, [bounds, disablePast, disableFuture, disabledKeys])
 
   const bsGrid = useMemo(() => getMonthGrid(bsYear, bsMonth), [bsYear, bsMonth])
-  const adGrid = useMemo(() => getADMonthGrid(adYear, adMonth), [adYear, adMonth])
+  const adGrid = useMemo(() => {
+    // Derive the AD month cell-for-cell from the BS grid so both arrays always
+    // describe identical days (independent AD grids misalign at month edges).
+    return bsGrid.map(cell => {
+      const { year, month, day } = civilYMD(cell.adDate)
+      const cellDate = new Date(year, month - 1, day)
+      return {
+        year, month: month - 1, day,
+        date: cellDate,
+        isOtherMonth: cell.isOtherMonth,
+        isToday: cellDate.toDateString() === today.toDateString(),
+      }
+    })
+  }, [bsGrid, today])
 
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>()
@@ -334,19 +424,18 @@ export function BSCalendar({
         holidays: cellHolidays,
         eventOverflow: totalItems > maxVisibleEvents,
         visibleEvents: maxVisibleEvents,
+        disabled: isDayDisabled(cell),
       })
     }
     return map
   }, [bsGrid, adGrid, eventsByDate, holidaysByDate, maxVisibleEvents])
 
   const isTailwind = theme === 'tailwind'
-  const isBootstrap = theme === 'bootstrap'
 
   const cls = useMemo(() => {
     if (isTailwind) return { ...tailwindClasses, ...customClasses }
-    if (isBootstrap) return { ...bootstrapClasses, ...customClasses }
     return customClasses ?? {} as BSCalendarClassNames
-  }, [theme, customClasses, isTailwind, isBootstrap])
+  }, [theme, customClasses, isTailwind])
 
   const styles: BSCalendarStyles = useMemo(() => {
     if (theme === 'default') return { ...defaultStyles, ...customStyles }
@@ -367,53 +456,89 @@ export function BSCalendar({
     })
   }, [])
 
+  const canGoPrev = (bsMonth === 1 ? bsYear - 1 : bsYear) >= minY
+  const canGoNext = (bsMonth === 12 ? bsYear + 1 : bsYear) <= maxY
+
   const handleDateSelect = useCallback((cell: CalendarCell) => {
+    if (isDayDisabled(cell)) return // out of range, bounded, or explicitly disabled
     const date = toAD(cell.bsYear, cell.bsMonth, cell.bsDay)
     setSelectedDate(date)
     onDateSelect?.(date, { year: cell.bsYear, month: cell.bsMonth, day: cell.bsDay })
-  }, [onDateSelect])
+  }, [onDateSelect, isDayDisabled])
+
+  /** Jump to a specific month (month/year quick-select) within the data range. */
+  const jumpToMonth = useCallback((year: number, month: number) => {
+    const y = Math.min(Math.max(year, bounds.minBS.y), bounds.maxBS.y)
+    setBsYear(y)
+    setBsMonth(month)
+    setMonthPickerOpen(false)
+    setYearPickerOpen(false)
+  }, [bounds])
 
   const handleMonthChange = useCallback((dir: 'prev' | 'next') => {
-    const prevBsYear = bsYear
-    const prevBsMonth = bsMonth
+    if (dir === 'prev' && !canGoPrev) return
+    if (dir === 'next' && !canGoNext) return
+    // Compute the target month up-front and report it with the change event —
+    // the old code reported the *previous* month via a stale setTimeout.
+    let targetYear = bsYear
+    let targetMonth = bsMonth
+    if (dir === 'prev') {
+      targetMonth = bsMonth === 1 ? 12 : bsMonth - 1
+      if (bsMonth === 1) targetYear = bsYear - 1
+    } else {
+      targetMonth = bsMonth === 12 ? 1 : bsMonth + 1
+      if (bsMonth === 12) targetYear = bsYear + 1
+    }
     if (dir === 'prev') prevMonth()
     else nextMonth()
-    setTimeout(() => onMonthChange?.(prevBsYear, prevBsMonth, adYear, adMonth), 0)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prevMonth, nextMonth, onMonthChange])
+    const adFirst = toAD(targetYear, targetMonth, 1)
+    onMonthChange?.(targetYear, targetMonth, adFirst.getFullYear(), adFirst.getMonth())
+  }, [prevMonth, nextMonth, onMonthChange, bsYear, bsMonth, canGoPrev, canGoNext])
 
   const renderWeekdays = useCallback(() => {
-    const names = ['आइत', 'सोम', 'मङ्गल', 'बुध', 'बिहि', 'शुक्र', 'शनि']
+    // Keep Nepali day headers; translate for non-Nepali language modes.
+    const names = language === 'english'
+      ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+      : ['आइत', 'सोम', 'मङ्गल', 'बुध', 'बिहि', 'शुक्र', 'शनि']
     return names.map((d, i) => {
       const props = isTailwind ? { className: cls.weekday }
-        : isBootstrap ? { className: cls.weekday }
         : { style: styles.weekday }
       return <div key={i} {...props}>{d}</div>
     })
-  }, [cls, styles, isTailwind, isBootstrap])
+  }, [cls, styles, isTailwind, language])
 
   const getCellClasses = useCallback((data: CellData) => {
     const { cell } = data
     const isCellToday = cell.isToday
-    const isCellSelected = selectedDate && cell.adDate.toDateString() === selectedDate.toDateString()
+    const isCellSelected = selectedDate && dateToKey(cell.adDate) === dateToKey(selectedDate)
     const hasEvents = data.events.length > 0 || data.holidays.length > 0
-    const parts = [isTailwind || isBootstrap ? cls.cell : undefined]
-    if (isCellToday) parts.push(isTailwind ? cls.cellToday : isBootstrap ? cls.cellToday : undefined)
-    if (isCellSelected) parts.push(isTailwind ? cls.cellSelected : isBootstrap ? cls.cellSelected : undefined)
-    if (cell.isOtherMonth) parts.push(isTailwind ? cls.cellOtherMonth : isBootstrap ? cls.cellOtherMonth : undefined)
-    if (hasEvents && data.holidays.length > 0) parts.push(isTailwind ? cls.cellWithHoliday : isBootstrap ? cls.cellWithHoliday : undefined)
+    const parts = [isTailwind ? cls.cell : undefined]
+    if (isCellToday) parts.push(isTailwind ? cls.cellToday : undefined)
+    if (isCellSelected) parts.push(isTailwind ? cls.cellSelected : undefined)
+    if (cell.isOtherMonth) parts.push(isTailwind ? cls.cellOtherMonth : undefined)
+    if (data.disabled) parts.push(isTailwind ? cls.cellDisabled : undefined)
+    if (hasEvents && data.holidays.length > 0) parts.push(isTailwind ? cls.cellWithHoliday : undefined)
     return parts.filter(Boolean).join(' ') || undefined
-  }, [cls, styles, selectedDate, isTailwind, isBootstrap])
+  }, [cls, selectedDate, isTailwind])
 
+  /**
+   * Stable cell geometry for every theme: cells keep width × cellAspectRatio
+   * height (aspect-ratio CSS, default 1 — a uniform square-ish grid), floored
+   * so event dots/labels never collapse a row. Empty cells no longer shrink.
+   */
   const getCellStyle = useCallback((data: CellData): React.CSSProperties => {
     const { cell } = data
-    const base: React.CSSProperties = { ...(styles.cell as React.CSSProperties || {}) }
-    if (cell.isToday && styles.cellToday) Object.assign(base, styles.cellToday)
-    if (selectedDate && cell.adDate.toDateString() === selectedDate.toDateString() && styles.cellSelected) Object.assign(base, styles.cellSelected)
-    if (cell.isOtherMonth && styles.cellOtherMonth) Object.assign(base, styles.cellOtherMonth)
-    if (data.holidays.length > 0 && styles.cellWithHoliday) Object.assign(base, styles.cellWithHoliday)
+    const base: React.CSSProperties = { aspectRatio: String(cellAspectRatio) }
+    if (theme === 'default') {
+      Object.assign(base, styles.cell)
+      if (cell.isToday && styles.cellToday) Object.assign(base, styles.cellToday)
+      if (selectedDate && dateToKey(cell.adDate) === dateToKey(selectedDate) && styles.cellSelected) Object.assign(base, styles.cellSelected)
+      if (cell.isOtherMonth && styles.cellOtherMonth) Object.assign(base, styles.cellOtherMonth)
+      if (data.disabled && styles.cellDisabled) Object.assign(base, styles.cellDisabled)
+      if (data.holidays.length > 0 && styles.cellWithHoliday) Object.assign(base, styles.cellWithHoliday)
+    }
     return base
-  }, [styles, selectedDate])
+  }, [styles, selectedDate, cellAspectRatio, theme])
 
   return (
     <div
@@ -427,30 +552,96 @@ export function BSCalendar({
         >
           <button
             className={[cls.navButton, cls.navPrev].filter(Boolean).join(' ') || undefined}
-            style={theme === 'default' ? styles.navButton as React.CSSProperties : undefined}
+            style={theme === 'default' ? { ...(styles.navButton as React.CSSProperties), ...(canGoPrev ? {} : { opacity: 0.3, cursor: 'default' }) } : undefined}
             onClick={() => handleMonthChange('prev')}
+            disabled={!canGoPrev}
           >
             ‹
           </button>
           {renderHeader
             ? renderHeader(monthName(bsMonth), String(bsYear), 'bs')
             : (
-              <span
-                className={cls.monthYear || undefined}
-                style={theme === 'default' ? styles.monthYear as React.CSSProperties : undefined}
-              >
-                {language === 'nepali'
-                  ? `${nepaliMonthName(bsMonth)} ${toDevanagariNumeral(bsYear)}`
-                  : language === 'both'
-                    ? `${monthName(bsMonth)} ${bsYear} / ${nepaliMonthName(bsMonth)} ${toDevanagariNumeral(bsYear)}`
-                    : `${monthName(bsMonth)} ${bsYear}`}
+              <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'baseline', gap: 6 }}>
+                {enableMonthPicker ? (
+                  <button
+                    type="button"
+                    onClick={() => { setMonthPickerOpen(o => !o); setYearPickerOpen(false) }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', fontWeight: 'inherit', color: 'inherit', padding: 0 }}
+                  >
+                    {language === 'nepali'
+                      ? nepaliMonthName(bsMonth)
+                      : language === 'both'
+                        ? `${monthName(bsMonth)} / ${nepaliMonthName(bsMonth)}`
+                        : monthName(bsMonth)}
+                    <span style={{ fontSize: 9, marginLeft: 2 }}>▾</span>
+                  </button>
+                ) : (
+                  <span
+                    className={cls.monthYear || undefined}
+                    style={theme === 'default' ? styles.monthYear as React.CSSProperties : undefined}
+                  >
+                    {language === 'nepali'
+                      ? nepaliMonthName(bsMonth)
+                      : language === 'both'
+                        ? `${monthName(bsMonth)} ${num(bsYear)} / ${nepaliMonthName(bsMonth)}`
+                        : `${monthName(bsMonth)} ${num(bsYear)}`}
+                  </span>
+                )}
+                {enableYearPicker && (
+                  <button
+                    type="button"
+                    onClick={() => { setYearPickerOpen(o => !o); setMonthPickerOpen(false) }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', fontWeight: 'inherit', color: 'inherit', padding: 0 }}
+                  >
+                    {num(bsYear)}<span style={{ fontSize: 9, marginLeft: 2 }}>▾</span>
+                  </button>
+                )}
+                {monthPickerOpen && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 30, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.12)', padding: 6, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2, minWidth: 200 }}>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => jumpToMonth(bsYear, m)}
+                        style={{
+                          border: m === bsMonth ? '1px solid #2563eb' : '1px solid transparent',
+                          background: m === bsMonth ? '#eff6ff' : 'transparent',
+                          borderRadius: 4, padding: '4px 6px', fontSize: 11, cursor: 'pointer',
+                          color: m === bsMonth ? '#2563eb' : '#374151', fontWeight: m === bsMonth ? 600 : 400,
+                        }}
+                      >
+                        {language === 'nepali' ? nepaliMonthName(m) : monthName(m)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {yearPickerOpen && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 30, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.12)', padding: 6, maxHeight: 210, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, minWidth: 190 }}>
+                    {Array.from({ length: bounds.maxBS.y - bounds.minBS.y + 1 }, (_, i) => bounds.minBS.y + i).map(y => (
+                      <button
+                        key={y}
+                        type="button"
+                        onClick={() => jumpToMonth(y, bsMonth)}
+                        style={{
+                          border: y === bsYear ? '1px solid #2563eb' : '1px solid transparent',
+                          background: y === bsYear ? '#eff6ff' : 'transparent',
+                          borderRadius: 4, padding: '3px 4px', fontSize: 11, cursor: 'pointer', fontFamily: 'monospace',
+                          color: y === bsYear ? '#2563eb' : '#374151', fontWeight: y === bsYear ? 600 : 400,
+                        }}
+                      >
+                        {num(y)}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </span>
             )
           }
           <button
             className={[cls.navButton, cls.navNext].filter(Boolean).join(' ') || undefined}
-            style={theme === 'default' ? styles.navButton as React.CSSProperties : undefined}
+            style={theme === 'default' ? { ...(styles.navButton as React.CSSProperties), ...(canGoNext ? {} : { opacity: 0.3, cursor: 'default' }) } : undefined}
             onClick={() => handleMonthChange('next')}
+            disabled={!canGoNext}
           >
             ›
           </button>
@@ -473,14 +664,16 @@ export function BSCalendar({
           const isHovered = hoveredCell === cell.bsKey
 
           if (renderDay) {
+            const disabled = data.disabled === true
             return (
               <div
                 key={cell.bsKey}
-                className={isTailwind || isBootstrap ? getCellClasses(data) : undefined}
-                style={theme === 'default' ? getCellStyle(data) : undefined}
-                onClick={() => handleDateSelect(cell)}
+                className={isTailwind ? getCellClasses(data) : undefined}
+                style={getCellStyle(data)}
+                onClick={() => { if (!disabled) handleDateSelect(cell) }}
                 onMouseEnter={() => setHoveredCell(cell.bsKey)}
                 onMouseLeave={() => setHoveredCell(null)}
+                aria-disabled={disabled || undefined}
               >
                 {renderDay(data)}
               </div>
@@ -488,19 +681,20 @@ export function BSCalendar({
           }
 
           const dayNumber = dateFormat
-            ? formatBSDate(cell.adDate, dateFormat)
-            : (language === 'nepali' ? toDevanagariNumeral(cell.bsDay) : String(cell.bsDay))
+            ? num(formatBSDate(cell.adDate, dateFormat))
+            : (language === 'nepali' || digits === 'devanagari' ? num(cell.bsDay) : String(cell.bsDay))
           const showAd = view === 'both' || view === 'ad'
           const showBs = view === 'both' || view === 'bs'
 
           return (
             <div
               key={cell.bsKey}
-              className={isTailwind || isBootstrap ? getCellClasses(data) : undefined}
-              style={theme === 'default' ? getCellStyle(data) : undefined}
-              onClick={() => handleDateSelect(cell)}
+              className={isTailwind ? getCellClasses(data) : undefined}
+              style={getCellStyle(data)}
+              onClick={() => { if (!data.disabled) handleDateSelect(cell) }}
               onMouseEnter={() => setHoveredCell(cell.bsKey)}
               onMouseLeave={() => setHoveredCell(null)}
+              aria-disabled={data.disabled || undefined}
             >
               {showBs && (
                 <span
@@ -510,16 +704,16 @@ export function BSCalendar({
                   {dayNumber}
                 </span>
               )}
-              {showAd && view === 'ad' && (
+              {showAd && (view === 'ad' || view === 'both') && (
                 <span
                   className={cls.adNumber || undefined}
                   style={theme === 'default' ? styles.adNumber as React.CSSProperties : undefined}
                 >
-                  {cell.adDate.getDate()}
+                  {num(civilYMD(cell.adDate).day)}
                 </span>
               )}
 
-              <div style={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column', gap: 1, overflow: 'hidden' }}>
+              <div style={{ width: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 1, overflow: 'hidden' }}>
                 {showHolidayLabels && data.holidays.slice(0, maxVisibleEvents).map(h => (
                   renderHoliday
                     ? <div key={h.date + h.name} onClick={(e) => { e.stopPropagation(); onHolidayClick?.(h, cell.adDate) }}>{renderHoliday(h)}</div>

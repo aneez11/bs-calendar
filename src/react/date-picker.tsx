@@ -1,12 +1,12 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
-import { toBS, toAD } from '../core/convert'
-import { isValidBS } from '../validate'
+import { toBS, toAD, isValidBS } from '../index'
+import { toDevanagariNumeralsIn } from '../nepali'
 import { formatBSDate, formatADDate } from '../format-date'
 import { BSCalendar } from './calendar'
 import type { BSCalendarProps, CalendarEvent, Holiday } from './calendar'
 
 export type DatePickerMode = 'ad' | 'bs' | 'both'
-export type DatePickerTheme = 'default' | 'tailwind' | 'bootstrap'
+export type DatePickerTheme = 'default' | 'tailwind'
 
 export interface BSDatePickerClassNames {
   wrapper?: string
@@ -38,20 +38,34 @@ export interface BSDatePickerStyles {
 
 export interface BSDatePickerProps {
   value?: Date
+  /** BS-typed value (Bikram Sambat { year, month, day }) — the BS-first way to control the picker. */
+  valueBS?: { year: number; month: number; day: number } | null
+  /** Fires with the BS value as primary (plus the equivalent AD date). */
+  onChangeBS?: (bs: { year: number; month: number; day: number } | null, adDate: Date | null) => void
   onChange?: (adDate: Date | null, bs: { year: number; month: number; day: number } | null) => void
   mode?: DatePickerMode
+  /** Which tab starts active when mode='both' (default 'bs' — BS-first, like Nepali apps). */
+  defaultMode?: 'bs' | 'ad'
   language?: 'nepali' | 'english' | 'both'
   theme?: DatePickerTheme
   dateFormat?: string
   placeholder?: string
   disabled?: boolean
   name?: string
+  /** Render digits as Devanagari in the input and converted label. */
+  digits?: 'latin' | 'devanagari'
+  /** Inclusive day-level bounds (enforced — out-of-range days are disabled). */
+  minDate?: Date
+  maxDate?: Date
+  disablePast?: boolean
+  disableFuture?: boolean
+  disabledDates?: Date[]
+  /** Show month/year quick-select dropdowns in the popup header (default true). */
+  showMonthYearPicker?: boolean
   classNames?: BSDatePickerClassNames
   styles?: BSDatePickerStyles
   showCalendar?: boolean
   placement?: 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end'
-  minDate?: Date
-  maxDate?: Date
   events?: CalendarEvent[]
   holidays?: Holiday[]
   renderInput?: (props: { value: string; onClick: () => void; onFocus: () => void }) => React.ReactNode
@@ -86,76 +100,56 @@ const pickerTailwindClasses: Required<BSDatePickerClassNames> = {
   calendarWrapper: '',
 }
 
-const pickerBootstrapClasses: Required<BSDatePickerClassNames> = {
-  wrapper: 'position-relative',
-  inputWrapper: 'd-flex align-items-center border border-secondary rounded overflow-hidden bg-white',
-  input: 'flex-fill border-0 outline-none px-3 py-2 small bg-transparent',
-  inputError: 'border-danger',
-  toggleButton: 'bg-transparent border-0 border-start border-light py-1 px-2 cursor-pointer d-flex align-items-center justify-content-center',
-  dropdown: 'position-absolute z-3 bg-white border border-secondary rounded shadow overflow-hidden mt-1',
-  modeSwitch: 'd-flex border-bottom border-light',
-  modeButton: 'flex-fill py-1 px-2 border-0 bg-transparent cursor-pointer small text-muted',
-  modeButtonActive: 'bg-primary bg-opacity-10 text-primary fw-semibold',
-  convertedLabel: 'small text-muted px-3 pb-1',
-  calendarWrapper: '',
-}
-
 function parseDateInput(value: string, mode: DatePickerMode): Date | null {
   const trimmed = value.trim()
   if (!trimmed) return null
 
-  // Try YYYY-MM-DD
   const parts = trimmed.split(/[-\/.]/)
-  if (parts.length === 3) {
-    const nums = parts.map(Number)
-    if (nums.some(isNaN)) return null
-    if (mode === 'bs') {
-      // Interpret as BS date
-      const [y, m, d] = nums as [number, number, number]
-      if (isValidBS(y, m, d)) {
-        try { return toAD(y, m, d) } catch { return null }
-      }
-      return null
-    }
-    // Interpret as AD date
-    const [y, m, d] = nums as [number, number, number]
-    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
-      const date = new Date(y, m - 1, d)
-      if (date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) {
-        return date
-      }
-    }
+  if (parts.length !== 3) return null
+  if (parts.some(p => p === '' || Number.isNaN(Number(p)))) return null
+  const nums = parts.map(Number) as [number, number, number]
+
+  // Disambiguate by segment shape rather than trying Y-M-D first for
+  // everything: '15/01/2024' must not be eaten as year 15.
+  let y: number, m: number, d: number
+  if (parts[0]!.length === 4) {
+    ;[y, m, d] = nums // YYYY-MM-DD
+  } else if (parts[2]!.length === 4) {
+    ;[d, m, y] = nums // DD/MM/YYYY (Nepali convention)
+  } else {
+    return null
   }
 
-  // Try DD/MM/YYYY or MM/DD/YYYY
-  if (parts.length === 3 && parts[0]!.length <= 2 && parts[1]!.length <= 2) {
-    const nums = parts.map(Number)
-    if (nums.some(isNaN)) return null
-    // Try DD/MM/YYYY first (Nepali convention)
-    let [d, m, y] = nums as [number, number, number]
-    if (d >= 1 && d <= 31 && m >= 1 && m <= 12) {
-      if (mode === 'bs') {
-        if (isValidBS(y, m, d)) { try { return toAD(y, m, d) } catch { return null } }
-        return null
-      }
-      const date = new Date(y, m - 1, d)
-      if (date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) return date
-    }
+  if (mode === 'bs') {
+    if (!isValidBS(y, m, d)) return null
+    try { return toAD(y, m, d) } catch { return null }
   }
 
-  return null
+  if (m < 1 || m > 12 || d < 1 || d > 31) return null
+  const date = new Date(y, m - 1, d)
+  return (date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) ? date : null
 }
 
 export function BSDatePicker({
   value: propValue,
+  valueBS,
   onChange,
+  onChangeBS,
   mode = 'both',
+  defaultMode = 'bs',
   language = 'both',
   theme = 'default',
   dateFormat,
   placeholder = 'Select date...',
   disabled = false,
   name,
+  digits = 'latin',
+  minDate,
+  maxDate,
+  disablePast = false,
+  disableFuture = false,
+  disabledDates,
+  showMonthYearPicker = true,
   classNames: customClasses,
   styles: customStyles,
   showCalendar: propShowCalendar = true,
@@ -167,19 +161,44 @@ export function BSDatePicker({
 }: BSDatePickerProps) {
   const [open, setOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
-  const [activeMode, setActiveMode] = useState<DatePickerMode>(mode === 'both' ? 'ad' : mode)
-  const [selectedDate, setSelectedDate] = useState<Date | null>(propValue ?? null)
+  const [activeMode, setActiveMode] = useState<DatePickerMode>(mode === 'both' ? defaultMode : mode)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(() => {
+    if (propValue) return propValue
+    if (valueBS) {
+      try { return toAD(valueBS.year, valueBS.month, valueBS.day) } catch { return null }
+    }
+    return null
+  })
   const wrapperRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // Devanagari digit rendering for the input display and converted label.
+  const num = useCallback((s: string) => (digits === 'devanagari' ? toDevanagariNumeralsIn(s) : s), [digits])
+
+  // Commit a selection through both callback shapes (BS-primary and AD-primary).
+  const commit = useCallback((date: Date | null) => {
+    setSelectedDate(date)
+    if (!date) {
+      onChange?.(null, null)
+      onChangeBS?.(null, null)
+      return
+    }
+    try {
+      const bs = toBS(date)
+      onChange?.(date, bs)
+      onChangeBS?.(bs, date)
+    } catch {
+      onChange?.(date, null)
+      onChangeBS?.(null, date)
+    }
+  }, [onChange, onChangeBS])
+
   const isTailwind = theme === 'tailwind'
-  const isBootstrap = theme === 'bootstrap'
 
   const cls = useMemo(() => {
     if (isTailwind) return { ...pickerTailwindClasses, ...customClasses }
-    if (isBootstrap) return { ...pickerBootstrapClasses, ...customClasses }
     return customClasses ?? {} as BSDatePickerClassNames
-  }, [theme, customClasses, isTailwind, isBootstrap])
+  }, [theme, customClasses, isTailwind])
 
   const styles: BSDatePickerStyles = useMemo(() => {
     if (theme === 'default') return { ...pickerDefaultStyles, ...customStyles }
@@ -194,45 +213,50 @@ export function BSDatePicker({
   const displayValue = useMemo(() => {
     if (!selectedDate) return ''
     if (dateFormat) {
-      return activeMode === 'bs' && bsDate
+      return num(activeMode === 'bs' && bsDate
         ? formatBSDate(selectedDate, dateFormat)
-        : formatADDate(selectedDate, dateFormat)
+        : formatADDate(selectedDate, dateFormat))
     }
     if (activeMode === 'bs' && bsDate) {
-      return `${bsDate.year}-${String(bsDate.month).padStart(2, '0')}-${String(bsDate.day).padStart(2, '0')}`
+      return num(`${bsDate.year}-${String(bsDate.month).padStart(2, '0')}-${String(bsDate.day).padStart(2, '0')}`)
     }
     return formatADDate(selectedDate, 'YYYY-MM-DD')
-  }, [selectedDate, activeMode, bsDate, dateFormat])
+  }, [selectedDate, activeMode, bsDate, dateFormat, num])
 
   const convertedValue = useMemo(() => {
     if (!selectedDate || !bsDate) return ''
     if (activeMode === 'bs') {
-      return `AD: ${formatADDate(selectedDate, 'YYYY-MM-DD')}`
+      return num(`AD: ${formatADDate(selectedDate, 'YYYY-MM-DD')}`)
     }
-    return `BS: ${bsDate.year}-${String(bsDate.month).padStart(2, '0')}-${String(bsDate.day).padStart(2, '0')}`
-  }, [selectedDate, bsDate, activeMode])
+    return num(`BS: ${bsDate.year}-${String(bsDate.month).padStart(2, '0')}-${String(bsDate.day).padStart(2, '0')}`)
+  }, [selectedDate, bsDate, activeMode, num])
+
+  // Controlled sync: a new value/valueBS prop updates the internal selection
+  // (guarded by identity so re-renders with the same date don't loop).
+  const valueBSKey = valueBS ? `${valueBS.year}-${valueBS.month}-${valueBS.day}` : ''
+  useEffect(() => {
+    if (valueBSKey || !propValue) return
+    setSelectedDate(prev => (prev && prev.getTime() === propValue.getTime() ? prev : propValue))
+  }, [propValue, valueBSKey])
+  useEffect(() => {
+    if (!valueBSKey || !valueBS) return
+    try {
+      const ad = toAD(valueBS.year, valueBS.month, valueBS.day)
+      setSelectedDate(prev => (prev && prev.getTime() === ad.getTime() ? prev : ad))
+    } catch { /* invalid BS value — ignore */ }
+  }, [valueBSKey, valueBS])
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
     setInputValue(val)
     const parsed = parseDateInput(val, activeMode)
-    if (parsed) {
-      setSelectedDate(parsed)
-      try {
-        const bs = toBS(parsed)
-        onChange?.(parsed, bs)
-      } catch {
-        onChange?.(parsed, null)
-      }
-    }
-  }, [activeMode, onChange])
+    if (parsed) commit(parsed)
+  }, [activeMode, commit])
 
-  const handleDateSelect = useCallback((adDate: Date, bs: { year: number; month: number; day: number }) => {
-    setSelectedDate(adDate)
-    setInputValue('')
-    onChange?.(adDate, bs)
+  const handleDateSelect = useCallback((adDate: Date, _bs: { year: number; month: number; day: number }) => {
+    commit(adDate)
     setOpen(false)
-  }, [onChange])
+  }, [commit])
 
   const handleToggle = useCallback(() => {
     if (!disabled) setOpen(o => !o)
@@ -260,16 +284,15 @@ export function BSDatePicker({
   }, [])
 
   const handleToday = useCallback(() => {
-    const now = new Date()
-    setSelectedDate(now)
-    try {
-      const bs = toBS(now)
-      onChange?.(now, bs)
-    } catch {
-      onChange?.(now, null)
-    }
+    commit(new Date())
     setOpen(false)
-  }, [onChange])
+  }, [commit])
+
+  const handleClear = useCallback(() => {
+    commit(null)
+    setInputValue('')
+    setOpen(false)
+  }, [commit])
 
   const inputProps = {
     value: inputValue || displayValue,
@@ -285,7 +308,7 @@ export function BSDatePicker({
     ref: inputRef,
   }
 
-  const calendarTheme = theme === 'tailwind' ? 'tailwind' : theme === 'bootstrap' ? 'bootstrap' : 'default'
+  const calendarTheme = theme === 'tailwind' ? 'tailwind' : 'default'
 
   return (
     <div
@@ -376,6 +399,14 @@ export function BSDatePicker({
               showNavigation
               events={events}
               holidays={holidays}
+              {...(minDate ? { minDate } : {})}
+              {...(maxDate ? { maxDate } : {})}
+              disablePast={disablePast}
+              disableFuture={disableFuture}
+              {...(disabledDates ? { disabledDates } : {})}
+              digits={digits}
+              enableMonthPicker={showMonthYearPicker}
+              enableYearPicker={showMonthYearPicker}
               {...calendarProps}
             />
           </div>
@@ -388,9 +419,20 @@ export function BSDatePicker({
                 flex: 1, padding: '6px', border: 'none', background: 'transparent',
                 cursor: 'pointer', fontSize: 12, color: '#2563eb', fontWeight: 500,
               }}
-              className={isTailwind ? 'flex-1 py-1.5 px-2 border-none bg-transparent cursor-pointer text-xs text-blue-600 font-medium' : isBootstrap ? 'flex-fill py-1 px-2 border-0 bg-transparent cursor-pointer small text-primary fw-medium' : undefined}
+              className={isTailwind ? 'flex-1 py-1.5 px-2 border-none bg-transparent cursor-pointer text-xs text-blue-600 font-medium' : undefined}
             >
-              Today
+              {language === 'nepali' ? 'आज' : 'Today'}
+            </button>
+            <button
+              type="button"
+              onClick={handleClear}
+              style={{
+                flex: 1, padding: '6px', border: 'none', borderLeft: '1px solid #e5e7eb',
+                background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#dc2626', fontWeight: 500,
+              }}
+              className={isTailwind ? 'flex-1 py-1.5 px-2 border-none border-l border-gray-200 bg-transparent cursor-pointer text-xs text-red-600 font-medium' : undefined}
+            >
+              {language === 'nepali' ? 'मेटाउनुहोस्' : 'Clear'}
             </button>
             <button
               type="button"
@@ -399,9 +441,9 @@ export function BSDatePicker({
                 flex: 1, padding: '6px', border: 'none', borderLeft: '1px solid #e5e7eb',
                 background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#6b7280',
               }}
-              className={isTailwind ? 'flex-1 py-1.5 px-2 border-none border-l border-gray-200 bg-transparent cursor-pointer text-xs text-gray-500' : isBootstrap ? 'flex-fill py-1 px-2 border-0 border-start border-light bg-transparent cursor-pointer small text-muted' : undefined}
+              className={isTailwind ? 'flex-1 py-1.5 px-2 border-none border-l border-gray-200 bg-transparent cursor-pointer text-xs text-gray-500' : undefined}
             >
-              Close
+              {language === 'nepali' ? 'बन्द' : 'Close'}
             </button>
           </div>
         </div>

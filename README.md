@@ -38,8 +38,15 @@ const bs = toBS(new Date())        // { year: 2080, month: 1, day: 14 }
 // Format
 toBSString(new Date())             // "2080-01-14"
 todayBS()                          // { year, month, day }
-daysInMonth(2080, 1)               // 30 — O(1) lookup
+daysInMonth(2080, 1)               // 31 — O(1) lookup
 ```
+
+> **Note on `Date` semantics:** `toBS` accepts any `Date`. Exact UTC-midnight
+> dates (from `'YYYY-MM-DD'` strings) are read as UTC calendar dates;
+> `new Date()` and locally-constructed dates are read as the machine-local
+> calendar date. `toAD` returns a `Date` at UTC midnight — read it with
+> `.getUTCFullYear()/.getUTCMonth()/.getUTCDate()` (or format it with
+> `formatBSDate`/`toBSString`) rather than local getters.
 
 ### Devanagari
 
@@ -47,9 +54,9 @@ daysInMonth(2080, 1)               // 30 — O(1) lookup
 import { toDevanagariNumeral, toFormattedNepaliBS, nepaliMonthName } from 'bs-calendar'
 
 toDevanagariNumeral(2080)           // "२०८०"
-nepaliMonthName(1)                  // "वैशाख"
+nepaliMonthName(1)                  // "बैशाख"
 toFormattedNepaliBS(new Date('2023-04-14'))
-// → "२०८० वैशाख १"
+// → "२०८० बैशाख १"
 ```
 
 ---
@@ -64,7 +71,7 @@ import { BSCalendar } from 'bs-calendar/react'
 <BSCalendar
   view="both"             // 'bs' | 'ad' | 'both'
   language="both"         // 'nepali' | 'english' | 'both'
-  theme="default"         // 'default' | 'tailwind' | 'bootstrap'
+  theme="default"         // 'default' | 'tailwind'
   showNavigation
   events={events}
   holidays={holidays}
@@ -127,7 +134,7 @@ const adGrid = getADMonthGrid(2024, 0)  // January 2024
 
 ## 🎨 Styling
 
-Three themes, full customization per element:
+Two themes, full customization per element:
 
 ```tsx
 // Default — override inline styles
@@ -141,11 +148,6 @@ Three themes, full customization per element:
 <BSCalendar theme="tailwind" classNames={{
   cell: 'bg-slate-800 hover:bg-slate-700 rounded-lg',
   cellToday: 'bg-blue-900 ring-2 ring-blue-500',
-}} />
-
-// Bootstrap
-<BSCalendar theme="bootstrap" classNames={{
-  cellToday: 'bg-info bg-opacity-25 fw-bold border-info',
 }} />
 ```
 
@@ -174,7 +176,7 @@ formatADDate(new Date(), 'DD/MM/YYYY')        // "15/01/2024"
 | `M` / `D` | No padding | 1 / 15 |
 | `DD-NP` / `D-NP` | Devanagari day | १५ |
 | `MMMM` | Full month name | Baisakh |
-| `MMMM-NP` | Nepali month | वैशाख |
+| `MMMM-NP` | Nepali month | बैशाख |
 
 ---
 
@@ -195,7 +197,7 @@ formatADDate(new Date(), 'DD/MM/YYYY')        // "15/01/2024"
 | `getMonthGrid(bsYear, bsMonth)` | `CalendarCell[]` | 42-cell BS grid |
 | `getADMonthGrid(year, month)` | `ADCalendarCell[]` | 42-cell AD grid |
 | `toDevanagariNumeral(n)` | `string` | 2080 → २०८० |
-| `nepaliMonthName(bsMonth)` | `string` | वैशाख–चैत्र |
+| `nepaliMonthName(bsMonth)` | `string` | बैशाख–चैत |
 | `nepaliDayName(date)` | `string` | आइतबार–शनिबार |
 | `toNepaliBSString(date)` | `string` | २०८०-०१-०१ |
 | `toFormattedNepaliBS(date)` | `string` | २०८० वैशाख १ |
@@ -213,10 +215,22 @@ formatADDate(new Date(), 'DD/MM/YYYY')        // "15/01/2024"
 
 | Metric | Value |
 |--------|-------|
-| Gzipped size | **2.8 KB** |
+| Gzipped size | **< 5 KB** |
 | Runtime deps | **0** |
 | Supported BS range | **2000–2090** (91 years) |
-| Total days covered | **32,878** |
+| Total days covered | **33,238** |
+
+---
+
+## 🗓️ Data Accuracy
+
+Month-length data is compiled from a **primary public BS calendar dataset**
+(per-day AD↔BS records) and verified month-by-month against independent
+datasets (`nepali-date-converter`, `nepali-datetime`,
+bikrantj/nepali-calendar-scraper). One documented correction: the primary
+source currently serves an impossible 367-day BS 2087; this package applies
+the 366-day fix (see [src/data/SOURCES.md](./src/data/SOURCES.md) for full
+provenance and the verification methodology).
 
 ---
 
