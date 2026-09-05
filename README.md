@@ -17,7 +17,7 @@
 ## 📦 Install
 
 ```bash
-npm install bs-calendar
+npm install nepali-bs-calendar
 ```
 
 *Zero runtime dependencies. React is optional — only needed for `BSCalendar` / `BSDatePicker` components.*
@@ -27,7 +27,7 @@ npm install bs-calendar
 ## 🚀 Quick Start
 
 ```ts
-import { toAD, toBS, toBSString, daysInMonth, todayBS } from 'bs-calendar'
+import { toAD, toBS, toBSString, daysInMonth, todayBS } from 'nepali-bs-calendar'
 
 // BS → AD
 const ad = toAD(2080, 1, 1)        // Date('2023-04-14') — Nepali New Year
@@ -51,7 +51,7 @@ daysInMonth(2080, 1)               // 31 — O(1) lookup
 ### Devanagari
 
 ```ts
-import { toDevanagariNumeral, toFormattedNepaliBS, nepaliMonthName } from 'bs-calendar'
+import { toDevanagariNumeral, toFormattedNepaliBS, nepaliMonthName } from 'nepali-bs-calendar'
 
 toDevanagariNumeral(2080)           // "२०८०"
 nepaliMonthName(1)                  // "बैशाख"
@@ -66,7 +66,7 @@ toFormattedNepaliBS(new Date('2023-04-14'))
 ### BSCalendar — Interactive Calendar
 
 ```tsx
-import { BSCalendar } from 'bs-calendar/react'
+import { BSCalendar } from 'nepali-bs-calendar/react'
 
 <BSCalendar
   view="both"             // 'bs' | 'ad' | 'both'
@@ -84,7 +84,7 @@ import { BSCalendar } from 'bs-calendar/react'
 ### BSDatePicker — Date Input with Auto-Conversion
 
 ```tsx
-import { BSDatePicker } from 'bs-calendar/date-picker'
+import { BSDatePicker } from 'nepali-bs-calendar/date-picker'
 
 <BSDatePicker
   mode="both"             // 'ad' | 'bs' | 'both'
@@ -101,7 +101,7 @@ Typing `"2080-01-01"` auto-converts to AD `2023-04-14` and vice versa.
 ### Events & Holidays (BS dates supported)
 
 ```tsx
-import type { CalendarEvent, Holiday } from 'bs-calendar/react'
+import type { CalendarEvent, Holiday } from 'nepali-bs-calendar/react'
 
 const events: CalendarEvent[] = [
   { id: '1', title: 'Meeting',       date: '2024-01-15',           color: '#3b82f6' },
@@ -120,7 +120,7 @@ const holidays: Holiday[] = [
 Generate 42-cell (6×7, Sun–Sat) grids for UI rendering.
 
 ```ts
-import { getMonthGrid, getADMonthGrid } from 'bs-calendar'
+import { getMonthGrid, getADMonthGrid } from 'nepali-bs-calendar'
 
 // BS grid — each cell has both BS and AD dates
 const grid = getMonthGrid(2080, 1)
@@ -160,7 +160,7 @@ Styleable keys: `container`, `header`, `navButton`, `cell`, `cellToday`, `cellSe
 Flexible format strings for both BS and AD dates:
 
 ```ts
-import { formatBSDate, formatADDate } from 'bs-calendar'
+import { formatBSDate, formatADDate } from 'nepali-bs-calendar'
 
 formatBSDate(new Date(), 'YYYY-MM-DD')        // "2080-01-15"
 formatBSDate(new Date(), 'DD MMMM YYYY')      // "15 Baisakh 2080"

@@ -1,5 +1,5 @@
 {
-  "name": "bs-calendar",
+  "name": "nepali-bs-calendar",
   "version": "0.2.0",
   "type": "module",
   "description": "Zero-dependency Nepali Bikram Sambat (BS) calendar conversion",
@@ -61,6 +61,7 @@
     "bikram-sambat",
     "bs",
     "patro",
+    "bs-calendar",
     "date-converter"
   ],
   "license": "MIT"

@@ -65,20 +65,10 @@ jobs:
 
       - name: Publish to npm
         if: github.event_name == 'release' || inputs.publish == true
-        # The registry already hosts an older bs-calendar line (1.0.228, a
-        # retired package under the same account). npm refuses to move the
-        # implicit `latest` tag DOWN to a lower version, so publish under an
-        # explicit tag first, then point `latest` at this release.
-        run: npm publish --tag next --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Point latest dist-tag at the published version
-        if: github.event_name == 'release' || inputs.publish == true
-        run: npm dist-tag add bs-calendar@$(node -p "require('./package.json').version") latest
+        run: npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Dry-run pack (manual run without publish)
         if: github.event_name != 'release' && inputs.publish != true
-        run: npm publish --dry-run --tag next
+        run: npm publish --dry-run

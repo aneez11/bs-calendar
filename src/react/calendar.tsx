@@ -195,7 +195,7 @@ const defaultStyles: Required<BSCalendarStyles> = {
 }
 
 const tailwindClasses: Required<BSCalendarClassNames> = {
-  container: 'bs-calendar max-w-md select-none',
+  container: 'nbs-calendar max-w-md select-none',
   header: 'flex items-center justify-between px-1 py-2',
   navButton: 'px-3 py-1 text-lg rounded border border-gray-300 hover:bg-gray-100 transition-colors cursor-pointer bg-white',
   navPrev: '', navNext: '',

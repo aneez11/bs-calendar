@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>bs-calendar — Bikram Sambat Calendar for JS</title>
+<title>nepali-bs-calendar — Bikram Sambat Calendar for JS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -270,12 +270,12 @@
   </div>
   <div class="code-block">
     <div class="tab-content active" id="tab-npm"><pre><code><span class="cm"># Install the package</span>
-npm install bs-calendar
+npm install nepali-bs-calendar
 
 <span class="cm"># With React components (optional peer dep)</span>
-npm install bs-calendar react</code></pre></div>
-    <div class="tab-content" id="tab-yarn"><pre><code>yarn add bs-calendar</code></pre></div>
-    <div class="tab-content" id="tab-pnpm"><pre><code>pnpm add bs-calendar</code></pre></div>
+npm install nepali-bs-calendar react</code></pre></div>
+    <div class="tab-content" id="tab-yarn"><pre><code>yarn add nepali-bs-calendar</code></pre></div>
+    <div class="tab-content" id="tab-pnpm"><pre><code>pnpm add nepali-bs-calendar</code></pre></div>
   </div>
 </div>
 
@@ -288,7 +288,7 @@ npm install bs-calendar react</code></pre></div>
     <button data-tab="cjs">CJS</button>
   </div>
   <div class="code-block">
-    <div class="tab-content active" id="tab-esm"><pre><code><span class="kw">import</span> { <span class="fn">toAD</span>, <span class="fn">toBS</span>, <span class="fn">toBSString</span>, <span class="fn">daysInMonth</span>, <span class="fn">todayBS</span> } <span class="kw">from</span> <span class="str">'bs-calendar'</span>
+    <div class="tab-content active" id="tab-esm"><pre><code><span class="kw">import</span> { <span class="fn">toAD</span>, <span class="fn">toBS</span>, <span class="fn">toBSString</span>, <span class="fn">daysInMonth</span>, <span class="fn">todayBS</span> } <span class="kw">from</span> <span class="str">'nepali-bs-calendar'</span>
 
 <span class="cm">// BS → AD</span>
 <span class="kw">const</span> <span class="fn">adDate</span> = <span class="fn">toAD</span>(<span class="num">2080</span>, <span class="num">1</span>, <span class="num">1</span>)
@@ -302,7 +302,7 @@ npm install bs-calendar react</code></pre></div>
 <span class="fn">toBSString</span>(<span class="kw">new</span> <span class="fn">Date</span>())           <span class="cm">// "2080-01-14"</span>
 <span class="fn">todayBS</span>()                         <span class="cm">// { year, month, day }</span>
 <span class="fn">daysInMonth</span>(<span class="num">2080</span>, <span class="num">1</span>)            <span class="cm">// 30</span></code></pre></div>
-    <div class="tab-content" id="tab-cjs"><pre><code><span class="kw">const</span> { <span class="fn">toAD</span>, <span class="fn">toBS</span>, <span class="fn">daysInMonth</span> } = <span class="fn">require</span>(<span class="str">'bs-calendar'</span>)
+    <div class="tab-content" id="tab-cjs"><pre><code><span class="kw">const</span> { <span class="fn">toAD</span>, <span class="fn">toBS</span>, <span class="fn">daysInMonth</span> } = <span class="fn">require</span>(<span class="str">'nepali-bs-calendar'</span>)
 
 <span class="kw">const</span> <span class="fn">ad</span> = <span class="fn">toAD</span>(<span class="num">2080</span>, <span class="num">1</span>, <span class="num">1</span>)
 console.<span class="fn">log</span>(ad) <span class="cm">// Date('2023-04-14')</span></code></pre></div>
@@ -313,7 +313,7 @@ console.<span class="fn">log</span>(ad) <span class="cm">// Date('2023-04-14')</
 <div class="section" id="nepali">
   <h3>Nepali (Devanagari) Formatting</h3>
   <div class="code-block">
-    <pre><code><span class="kw">import</span> { <span class="fn">toDevanagariNumeral</span>, <span class="fn">toFormattedNepaliBS</span>, <span class="fn">nepaliMonthName</span> } <span class="kw">from</span> <span class="str">'bs-calendar'</span>
+    <pre><code><span class="kw">import</span> { <span class="fn">toDevanagariNumeral</span>, <span class="fn">toFormattedNepaliBS</span>, <span class="fn">nepaliMonthName</span> } <span class="kw">from</span> <span class="str">'nepali-bs-calendar'</span>
 
 <span class="fn">toDevanagariNumeral</span>(<span class="num">2080</span>)       <span class="cm">// "२०८०"</span>
 <span class="fn">nepaliMonthName</span>(<span class="num">1</span>)              <span class="cm">// "वैशाख"</span>
@@ -327,7 +327,7 @@ console.<span class="fn">log</span>(ad) <span class="cm">// Date('2023-04-14')</
   <h3>Calendar Grids</h3>
   <p>Generate 42-cell grids (6×7, Sun–Sat) for UI rendering. Each cell has both BS and AD dates.</p>
   <div class="code-block">
-    <pre><code><span class="kw">import</span> { <span class="fn">getMonthGrid</span>, <span class="fn">getADMonthGrid</span> } <span class="kw">from</span> <span class="str">'bs-calendar'</span>
+    <pre><code><span class="kw">import</span> { <span class="fn">getMonthGrid</span>, <span class="fn">getADMonthGrid</span> } <span class="kw">from</span> <span class="str">'nepali-bs-calendar'</span>
 
 <span class="cm">// BS grid — 42 CalendarCell objects</span>
 <span class="kw">const</span> <span class="fn">bsCells</span> = <span class="fn">getMonthGrid</span>(<span class="num">2080</span>, <span class="num">1</span>)
@@ -346,7 +346,7 @@ console.<span class="fn">log</span>(ad) <span class="cm">// Date('2023-04-14')</
 
   <h3>Minimal</h3>
   <div class="code-block">
-    <pre><code><span class="kw">import</span> { <span class="fn">BSCalendar</span> } <span class="kw">from</span> <span class="str">'bs-calendar/react'</span>
+    <pre><code><span class="kw">import</span> { <span class="fn">BSCalendar</span> } <span class="kw">from</span> <span class="str">'nepali-bs-calendar/react'</span>
 
 <span class="op">&lt;</span><span class="fn">BSCalendar</span>
   view=<span class="str">"both"</span>
@@ -359,8 +359,8 @@ console.<span class="fn">log</span>(ad) <span class="cm">// Date('2023-04-14')</
 
   <h3>With Events &amp; Holidays</h3>
   <div class="code-block">
-    <pre><code><span class="kw">import</span> { <span class="fn">BSCalendar</span> } <span class="kw">from</span> <span class="str">'bs-calendar/react'</span>
-<span class="kw">import type</span> { <span class="tp">CalendarEvent</span>, <span class="tp">Holiday</span> } <span class="kw">from</span> <span class="str">'bs-calendar/react'</span>
+    <pre><code><span class="kw">import</span> { <span class="fn">BSCalendar</span> } <span class="kw">from</span> <span class="str">'nepali-bs-calendar/react'</span>
+<span class="kw">import type</span> { <span class="tp">CalendarEvent</span>, <span class="tp">Holiday</span> } <span class="kw">from</span> <span class="str">'nepali-bs-calendar/react'</span>
 
 <span class="kw">const</span> events: <span class="tp">CalendarEvent</span>[] = [
   { id: <span class="str">'1'</span>, title: <span class="str">'Meeting'</span>,  date: <span class="str">'2024-01-15'</span>, time: <span class="str">'10:00'</span>, color: <span class="str">'#2563eb'</span> },
@@ -415,7 +415,7 @@ console.<span class="fn">log</span>(ad) <span class="cm">// Date('2023-04-14')</
     <button data-tab="dp-auto">Auto-Convert</button>
   </div>
   <div class="code-block">
-    <div class="tab-content active" id="tab-dp-basic"><pre><code><span class="kw">import</span> { <span class="fn">BSDatePicker</span> } <span class="kw">from</span> <span class="str">'bs-calendar/date-picker'</span>
+    <div class="tab-content active" id="tab-dp-basic"><pre><code><span class="kw">import</span> { <span class="fn">BSDatePicker</span> } <span class="kw">from</span> <span class="str">'nepali-bs-calendar/date-picker'</span>
 
 <span class="op">&lt;</span><span class="fn">BSDatePicker</span>
   mode=<span class="str">"both"</span>
@@ -461,7 +461,7 @@ console.<span class="fn">log</span>(ad) <span class="cm">// Date('2023-04-14')</
   <p>Use <code>formatBSDate</code> and <code>formatADDate</code> for custom date output in any format.</p>
 
   <div class="code-block">
-    <pre><code><span class="kw">import</span> { <span class="fn">formatBSDate</span>, <span class="fn">formatADDate</span> } <span class="kw">from</span> <span class="str">'bs-calendar'</span>
+    <pre><code><span class="kw">import</span> { <span class="fn">formatBSDate</span>, <span class="fn">formatADDate</span> } <span class="kw">from</span> <span class="str">'nepali-bs-calendar'</span>
 
 <span class="fn">formatBSDate</span>(<span class="kw">new</span> <span class="fn">Date</span>(), <span class="str">'YYYY-MM-DD'</span>)       <span class="cm">// "2080-01-15"</span>
 <span class="fn">formatBSDate</span>(<span class="kw">new</span> <span class="fn">Date</span>(), <span class="str">'DD MMMM YYYY'</span>)      <span class="cm">// "15 Baisakh 2080"</span>
@@ -541,7 +541,7 @@ console.<span class="fn">log</span>(ad) <span class="cm">// Date('2023-04-14')</
   <h2>Events &amp; Holidays</h2>
   <p>Both <code>BSCalendar</code> and <code>BSDatePicker</code> accept events and holidays. Use <code>dateType: 'bs'</code> for BS dates.</p>
   <div class="code-block">
-    <pre><code><span class="kw">import type</span> { <span class="tp">CalendarEvent</span>, <span class="tp">Holiday</span> } <span class="kw">from</span> <span class="str">'bs-calendar/react'</span>
+    <pre><code><span class="kw">import type</span> { <span class="tp">CalendarEvent</span>, <span class="tp">Holiday</span> } <span class="kw">from</span> <span class="str">'nepali-bs-calendar/react'</span>
 
 <span class="cm">// AD and BS dates are both supported</span>
 <span class="kw">const</span> events: <span class="tp">CalendarEvent</span>[] = [
@@ -561,7 +561,7 @@ console.<span class="fn">log</span>(ad) <span class="cm">// Date('2023-04-14')</
 <div class="section" id="api">
   <span class="section-label">Reference</span>
   <h2>API Reference</h2>
-  <p>All exported functions and types from <code>bs-calendar</code>.</p>
+  <p>All exported functions and types from <code>nepali-bs-calendar</code>.</p>
 
   <div class="table-wrap">
     <table>
@@ -668,7 +668,7 @@ console.<span class="fn">log</span>(ad) <span class="cm">// Date('2023-04-14')</
 </div>
 
 <footer>
-  <p>bs-calendar — MIT License. Built for the Nepali developer community.</p>
+  <p>nepali-bs-calendar — MIT License. Built for the Nepali developer community.</p>
 </footer>
 
 <script>
@@ -711,7 +711,7 @@ document.querySelectorAll('.section, .section[id]').forEach(el => observer.obser
       el.innerHTML = '<h4 style="color:var(--rose)">⚠️ Live demo requires a local server</h4>' +
         '<p style="font-size:.8125rem">Open a terminal and run:</p>' +
         '<pre style="background:var(--bg-code);padding:12px;border-radius:6px;font-size:.8125rem;margin:8px 0">npx serve docs</pre>' +
-        '<p style="font-size:.8125rem">from the <code>bs-calendar</code> directory, then open the URL shown.</p>';
+        '<p style="font-size:.8125rem">from the <code>nepali-bs-calendar</code> directory, then open the URL shown.</p>';
     });
     return;
   }
