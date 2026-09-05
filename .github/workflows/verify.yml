@@ -1,13 +1,23 @@
-name: Verify BS Calendar Data
+name: Verify & Publish BS Calendar
 
 on:
   schedule:
     # Run monthly to catch data drift
     - cron: '0 0 1 * *'
   workflow_dispatch:  # Allow manual trigger
+    inputs:
+      publish:
+        description: 'Publish to npm (manual runs)'
+        type: boolean
+        default: false
   pull_request:
     paths:
       - 'src/data/bs-data.raw.json'
+  release:
+    types: [released]  # Publishing a GitHub release ships the package to npm
+
+permissions:
+  contents: read
 
 jobs:
   verify:
@@ -16,9 +26,49 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
       - run: npm ci
       - run: npm run build:data
       - run: npx tsx scripts/verify-data.ts
       - run: npm test
+
+  publish:
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # npm provenance (OIDC)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org/'
+
+      # Safety: a GitHub release must carry the exact version being published
+      - name: Check package version matches release tag
+        if: github.event_name == 'release'
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::package.json version ($PKG_VERSION) does not match release tag ($GITHUB_REF_NAME)"
+            exit 1
+          fi
+
+      - run: npm ci
+      # Full pipeline gate: regenerate data, verify fixtures, build dist, run tests
+      - run: npm run ci
+
+      - name: Publish to npm
+        if: github.event_name == 'release' || inputs.publish == true
+        run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Dry-run pack (manual run without publish)
+        if: github.event_name != 'release' && inputs.publish != true
+        run: npm publish --dry-run

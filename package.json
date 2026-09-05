@@ -7,7 +7,12 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -50,6 +55,13 @@
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"
   },
-  "keywords": ["nepali", "calendar", "bikram-sambat", "bs", "patro", "date-converter"],
+  "keywords": [
+    "nepali",
+    "calendar",
+    "bikram-sambat",
+    "bs",
+    "patro",
+    "date-converter"
+  ],
   "license": "MIT"
 }
