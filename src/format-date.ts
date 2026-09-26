@@ -56,6 +56,8 @@ export function formatBSDate(date: Date, format: string): string {
     'YY': String(year).slice(-2),
     'MMMM-NP': nepaliMonthName(month),
     'MMMM': monthEn,
+    // BS abbreviations are 4 chars, not 3: 'Ashad' and 'Ashwin' would both
+    // collapse to 'Ash' at 3, so BS MMM is intentionally wider than AD MMM.
     'MMM': monthEn.slice(0, 4),
     'MM': pad(month),
     'M': String(month),

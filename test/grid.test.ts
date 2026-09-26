@@ -148,4 +148,10 @@ describe('getADMonthGrid', () => {
       expect(Number.isNaN(cell.date.getTime())).toBe(false)
     }
   })
+
+  it('rejects out-of-range months and non-integer years', () => {
+    expect(() => getADMonthGrid(2024, -1)).toThrow()
+    expect(() => getADMonthGrid(2024, 12)).toThrow()
+    expect(() => getADMonthGrid(2024.5, 0)).toThrow()
+  })
 })

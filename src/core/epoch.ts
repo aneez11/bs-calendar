@@ -2,11 +2,10 @@ import {
   monthLengths,
   cumulativeOffsets,
   minYear,
-  maxYear,
   referenceBS,
   referenceAD,
 } from '../data/bs-data.generated'
-import { BSInvalidDateError, BSRangeError } from '../validate'
+import { BSInvalidDateError, BSRangeError, assertBSMonth, assertBSYear } from '../validate'
 
 const MS_PER_DAY = 86400000
 
@@ -25,15 +24,10 @@ export function bsToEpochDay(year: number, month: number, day: number): number {
   if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
     throw new BSInvalidDateError(`BS date components must be integers, got ${year}/${month}/${day}`)
   }
-  if (year < minYear || year > maxYear) {
-    throw new BSRangeError(`Year ${year} out of range [${minYear}, ${maxYear}]`)
-  }
-  if (month < 1 || month > 12) {
-    throw new BSInvalidDateError(`Month ${month} out of range [1, 12]`)
-  }
+  assertBSYear(year)
+  assertBSMonth(month)
 
-  const months = monthLengths[String(year)]
-  if (!months) throw new BSRangeError(`No data for year ${year}`)
+  const months = monthLengths[String(year)]!
 
   if (day < 1 || day > months[month - 1]!) {
     throw new BSInvalidDateError(`Day ${day} out of range for BS ${year}/${month} (max ${months[month - 1]})`)
@@ -138,6 +132,12 @@ export function civilYMD(date: Date): { year: number; month: number; day: number
 /** Weekday (0=Sunday) of the civil date carried by `date` (UTC-midnight aware). */
 export function civilWeekday(date: Date): number {
   return date.getTime() % MS_PER_DAY === 0 ? date.getUTCDay() : date.getDay()
+}
+
+/** Absolute day number (AD 1970-01-01 = 0) of the civil date carried by `date`. */
+export function civilEpochDay(date: Date): number {
+  const { year, month, day } = civilYMD(date)
+  return Math.floor(Date.UTC(year, month - 1, day) / MS_PER_DAY)
 }
 
 // AD side

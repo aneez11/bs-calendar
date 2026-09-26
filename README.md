@@ -6,9 +6,9 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/bs-calendar"><img src="https://img.shields.io/bundlephobia/minzip/bs-calendar?color=%233b82f6&label=size&logo=npm" alt="npm bundle size"></a>
-  <a href="https://www.npmjs.com/package/bs-calendar"><img src="https://img.shields.io/npm/v/bs-calendar?color=%233b82f6&logo=npm" alt="npm version"></a>
-  <a href="https://www.npmjs.com/package/bs-calendar"><img src="https://img.shields.io/npm/dw/bs-calendar?color=%233b82f6&logo=npm" alt="npm downloads"></a>
+  <a href="https://www.npmjs.com/package/nepali-bs-calendar"><img src="https://img.shields.io/bundlephobia/minzip/nepali-bs-calendar?color=%233b82f6&label=size&logo=npm" alt="npm bundle size"></a>
+  <a href="https://www.npmjs.com/package/nepali-bs-calendar"><img src="https://img.shields.io/npm/v/nepali-bs-calendar?color=%233b82f6&logo=npm" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/nepali-bs-calendar"><img src="https://img.shields.io/npm/dw/nepali-bs-calendar?color=%233b82f6&logo=npm" alt="npm downloads"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-%233b82f6" alt="MIT license"></a>
 </p>
 
@@ -177,6 +177,11 @@ formatADDate(new Date(), 'DD/MM/YYYY')        // "15/01/2024"
 | `DD-NP` / `D-NP` | Devanagari day | १५ |
 | `MMMM` | Full month name | Baisakh |
 | `MMMM-NP` | Nepali month | बैशाख |
+| `MMM` | Abbreviated month | BS: `Bais` / `Mang` (4 chars); AD: `Jan` / `Sep` (3 chars) |
+| `YY` | 2-digit year | 80 |
+
+> BS abbreviations use 4 characters because 3 would collide (`Ashad`/`Ashwin`
+> both become `Ash`); AD abbreviations use the conventional 3.
 
 ---
 
@@ -189,6 +194,7 @@ formatADDate(new Date(), 'DD/MM/YYYY')        // "15/01/2024"
 | `daysInMonth(bsYear, bsMonth)` | `number` | Days in BS month (O(1)) |
 | `daysInYear(bsYear)` | `number` | 365 or 366 (O(1)) |
 | `isValidBS(year, month, day)` | `boolean` | Validate BS date |
+| `assertValidBS(year, month, day)` | `void` | Throw on invalid BS date |
 | `supportedRange()` | `{ minYear, maxYear }` | BS 2000–2090 |
 | `todayBS()` | `{ year, month, day }` | Today in BS |
 | `toBSString(date)` | `string` | "2080-01-01" |
@@ -197,12 +203,15 @@ formatADDate(new Date(), 'DD/MM/YYYY')        // "15/01/2024"
 | `getMonthGrid(bsYear, bsMonth)` | `CalendarCell[]` | 42-cell BS grid |
 | `getADMonthGrid(year, month)` | `ADCalendarCell[]` | 42-cell AD grid |
 | `toDevanagariNumeral(n)` | `string` | 2080 → २०८० |
+| `toDevanagariNumeralsIn(str)` | `string` | Latin digits in any string → Devanagari |
 | `nepaliMonthName(bsMonth)` | `string` | बैशाख–चैत |
 | `nepaliDayName(date)` | `string` | आइतबार–शनिबार |
 | `toNepaliBSString(date)` | `string` | २०८०-०१-०१ |
 | `toFormattedNepaliBS(date)` | `string` | २०८० वैशाख १ |
 | `formatBSDate(date, format)` | `string` | Custom format |
 | `formatADDate(date, format)` | `string` | Custom format |
+
+Constants: `EN_MONTH_NAMES`, `EN_DAY_NAMES`, `EN_DAY_SHORT`, `NEPALI_MONTH_NAMES`, `NEPALI_DAY_NAMES`.
 
 ### Error Classes
 
@@ -229,7 +238,7 @@ Month-length data is compiled from a **primary public BS calendar dataset**
 datasets (`nepali-date-converter`, `nepali-datetime`,
 bikrantj/nepali-calendar-scraper). One documented correction: the primary
 source currently serves an impossible 367-day BS 2087; this package applies
-the 366-day fix (see [src/data/SOURCES.md](./src/data/SOURCES.md) for full
+the 366-day fix (see [src/data/SOURCES.md](https://github.com/aneez11/bs-calendar/blob/main/src/data/SOURCES.md) for full
 provenance and the verification methodology).
 
 ---

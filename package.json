@@ -17,6 +17,11 @@
     "type": "git",
     "url": "git+https://github.com/aneez11/bs-calendar.git"
   },
+  "homepage": "https://github.com/aneez11/bs-calendar#readme",
+  "bugs": {
+    "url": "https://github.com/aneez11/bs-calendar/issues"
+  },
+  "author": "aneez11 (https://github.com/aneez11)",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -40,7 +45,7 @@
     "test": "vitest run",
     "verify:data": "tsx scripts/verify-data.ts",
     "ci": "npm run build:data && npm run verify:data && npm run build && npm test",
-    "prepublishOnly": "npm run build:data && npm run build && npm test",
+    "prepublishOnly": "npm run build:data && npm run verify:data && npm run build && npm test",
     "serve:docs": "npx serve docs -l 4000"
   },
   "peerDependencies": {
@@ -52,8 +57,12 @@
     }
   },
   "devDependencies": {
-    "react": "^18.3.0",
+    "@testing-library/dom": "^10.0.0",
+    "@testing-library/react": "^16.0.0",
     "@types/react": "^18.3.0",
+    "jsdom": "^25.0.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
     "tsup": "^8.0.0",
     "tsx": "^4.7.0",
     "typescript": "^5.4.0",
@@ -61,12 +70,25 @@
   },
   "keywords": [
     "nepali",
+    "nepali-calendar",
     "calendar",
     "bikram-sambat",
+    "bikram",
+    "sambat",
     "bs",
-    "patro",
     "bs-calendar",
-    "date-converter"
+    "patro",
+    "nepali-patro",
+    "date-converter",
+    "ad-to-bs",
+    "bs-to-ad",
+    "nepali-date",
+    "nepal",
+    "react-calendar",
+    "date-picker",
+    "datepicker",
+    "typescript",
+    "zero-dependency"
   ],
   "license": "MIT"
 }

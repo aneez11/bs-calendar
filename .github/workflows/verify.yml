@@ -29,9 +29,8 @@ jobs:
           node-version: 24
           cache: 'npm'
       - run: npm ci
-      - run: npm run build:data
-      - run: npx tsx scripts/verify-data.ts
-      - run: npm test
+      # Full gate: regenerate data, verify fixtures, build (dts typecheck), test
+      - run: npm run ci
 
   publish:
     if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'

@@ -1,7 +1,7 @@
 import { monthLengths } from './data/bs-data.generated'
 import { toBS, toAD } from './core/convert'
 import { civilYMD, civilWeekday } from './core/epoch'
-import { BSInvalidDateError, BSRangeError } from './validate'
+import { BSInvalidDateError, assertBSMonth, assertBSYear } from './validate'
 import { minYear, maxYear } from './data/bs-data.generated'
 
 export interface CalendarCell {
@@ -37,9 +37,9 @@ export const EN_DAY_NAMES = [
 export const EN_DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
 
 function daysInMonth(bsYear: number, bsMonth: number): number {
-  const months = monthLengths[String(bsYear)]
-  if (!months) throw new BSRangeError(`No data for year ${bsYear}`)
-  return months[bsMonth - 1]!
+  assertBSYear(bsYear)
+  assertBSMonth(bsMonth)
+  return monthLengths[String(bsYear)]![bsMonth - 1]!
 }
 
 function bsKeyOf(year: number, month: number, day: number): string {
@@ -52,15 +52,13 @@ function bsKeyOf(year: number, month: number, day: number): string {
  * supported data range (only possible for BS 2000/01 and BS 2090/12).
  */
 export function getMonthGrid(bsYear: number, bsMonth: number): CalendarCell[] {
-  if (bsYear < minYear || bsYear > maxYear) {
-    throw new BSRangeError(`Year ${bsYear} out of range [${minYear}, ${maxYear}]`)
-  }
-  if (bsMonth < 1 || bsMonth > 12) {
-    throw new BSInvalidDateError(`Month ${bsMonth} out of range [1, 12]`)
-  }
+  assertBSYear(bsYear)
+  assertBSMonth(bsMonth)
 
   const cells: CalendarCell[] = []
-  const todayKey = bsKeyOf(todayBSLocal().year, todayBSLocal().month, todayBSLocal().day)
+  // Resolved once per grid: repeated calls can disagree across a midnight tick,
+  // and toBS(now) throws once the current AD date passes the supported range.
+  const todayKey = todayBSKey()
 
   // Previous month trailing days (epoch arithmetic — safe at range boundaries
   // as long as the resulting BS dates exist in the dataset)
@@ -152,11 +150,24 @@ function epochToBS(epochDayNumber: number): { year: number; month: number; day: 
   return toBS(d)
 }
 
-function todayBSLocal(): { year: number; month: number; day: number } {
-  return toBS(new Date())
+/** BS key for "today", or `''` when today falls outside the supported range. */
+function todayBSKey(): string {
+  try {
+    const t = toBS(new Date())
+    return bsKeyOf(t.year, t.month, t.day)
+  } catch {
+    return ''
+  }
 }
 
 export function getADMonthGrid(year: number, month: number): ADCalendarCell[] {
+  if (!Number.isInteger(year) || year < 1) {
+    throw new BSInvalidDateError(`Year must be a positive integer, got ${year}`)
+  }
+  if (!Number.isInteger(month) || month < 0 || month > 11) {
+    throw new BSInvalidDateError(`Month ${month} out of range [0, 11]`)
+  }
+
   const cells: ADCalendarCell[] = []
   const today = new Date()
   const todayStr = today.toDateString()

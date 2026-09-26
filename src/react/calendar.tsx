@@ -1,11 +1,12 @@
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { toBS, toAD } from '../core/convert'
-import { civilYMD } from '../core/epoch'
+import { civilYMD, civilEpochDay } from '../core/epoch'
 import { getMonthGrid } from '../grid'
 import type { CalendarCell, ADCalendarCell } from '../grid'
 import { toDevanagariNumeralsIn, nepaliMonthName } from '../nepali'
 import { monthName } from '../format'
 import { formatBSDate } from '../format-date'
+import { clampBSMonth, clampBSYear } from '../validate'
 import { minYear, maxYear } from '../data/bs-data.generated'
 
 export type CalendarView = 'bs' | 'ad' | 'both'
@@ -220,6 +221,9 @@ const tailwindClasses: Required<BSCalendarClassNames> = {
   eventList: '',
 }
 
+/** Max event dots rendered inside a single day cell. */
+const EVENT_DOT_MAX = 5
+
 function dateToKey(date: Date): string {
   const { year, month, day } = civilYMD(date)
   const m = String(month).padStart(2, '0')
@@ -295,7 +299,14 @@ export function BSCalendar({
   enableYearPicker = false,
 }: BSCalendarProps) {
   const today = useMemo(() => new Date(), [])
-  const bsToday = useMemo(() => toBS(today), [today])
+  const bsToday = useMemo(() => {
+    try {
+      return toBS(today)
+    } catch {
+      // Current AD date is past the supported BS range — settle on the last month.
+      return { year: maxYear, month: 12, day: 1 }
+    }
+  }, [today])
 
   const initial = useMemo(() => {
     if (initialBSYear != null && initialBSMonth != null) return { year: initialBSYear, month: initialBSMonth }
@@ -308,12 +319,13 @@ export function BSCalendar({
     return { year: bsToday.year, month: bsToday.month }
   }, [initialBSYear, initialBSMonth, initialDate, bsToday])
 
-  // Navigation bounds (props may narrow the package data range)
-  const minY = minBSYear ?? minYear
-  const maxY = maxBSYear ?? maxYear
+  // Navigation bounds (props may narrow the package data range, never widen it
+  // beyond the years the dataset actually covers).
+  const minY = clampBSYear(minBSYear ?? minYear)
+  const maxY = clampBSYear(maxBSYear ?? maxYear)
 
-  const [bsYear, setBsYear] = useState(() => Math.min(Math.max(initial.year, minY), maxY))
-  const [bsMonth, setBsMonth] = useState(initial.month)
+  const [bsYear, setBsYear] = useState(() => Math.min(Math.max(initial.year, Math.min(minY, maxY)), Math.max(minY, maxY)))
+  const [bsMonth, setBsMonth] = useState(() => clampBSMonth(initial.month))
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(propSelectedDate)
   const [hoveredCell, setHoveredCell] = useState<string | null>(null)
   const [monthPickerOpen, setMonthPickerOpen] = useState(false)
@@ -322,15 +334,19 @@ export function BSCalendar({
   // Digit rendering: 'devanagari' transliterates every Latin digit in the UI.
   const num = useCallback((n: number | string) => (digits === 'devanagari' ? toDevanagariNumeralsIn(String(n)) : String(n)), [digits])
 
+  // Controlled sync: a new `selectedDate` prop replaces the internal selection.
+  // (Omitted prop leaves the component uncontrolled after mount.)
+  useEffect(() => {
+    if (propSelectedDate === undefined) return
+    setSelectedDate(prev => (prev && prev.getTime() === propSelectedDate.getTime() ? prev : propSelectedDate))
+  }, [propSelectedDate])
+
   // Selection bounds: day-precise epoch limits + year clamp derived from the
   // minDate/maxDate instants and the BS year-range props.
   const bounds = useMemo(() => {
-    const dayEpoch = (dt: Date) => {
-      const c = civilYMD(dt)
-      return Math.floor(Date.UTC(c.year, c.month - 1, c.day) / 86400000)
-    }
-    let minBS = { y: minBSYear != null ? Math.max(minBSYear, minYear) : minYear, m: 1, d: 1 }
-    let maxBS = { y: maxBSYear != null ? Math.min(maxBSYear, maxYear) : maxYear, m: 12, d: 31 }
+    const dayEpoch = civilEpochDay
+    let minBS = { y: minBSYear != null ? clampBSYear(minBSYear) : minYear, m: 1, d: 1 }
+    let maxBS = { y: maxBSYear != null ? clampBSYear(maxBSYear) : maxYear, m: 12, d: 31 }
     let minEd: number | null = null
     let maxEd: number | null = null
     if (minDate) {
@@ -353,12 +369,14 @@ export function BSCalendar({
   const isDayDisabled = useCallback((cell: CalendarCell) => {
     if (cell.isOutOfRange) return true
     let ed: number
-    try { ed = Math.floor(toAD(cell.bsYear, cell.bsMonth, cell.bsDay).getTime() / 86400000) } catch { return true }
+    try { ed = civilEpochDay(toAD(cell.bsYear, cell.bsMonth, cell.bsDay)) } catch { return true }
     if (bounds.minEd != null && ed < bounds.minEd) return true
     if (bounds.maxEd != null && ed > bounds.maxEd) return true
     if (disablePast && ed < bounds.todayEd) return true
     if (disableFuture && ed > bounds.todayEd) return true
-    return disabledKeys.has(cell.bsKey)
+    // disabledDates are AD civil dates — compare against the cell's AD key, not
+    // its BS key (the two namespaces differ by ~57 years).
+    return disabledKeys.has(dateToKey(cell.adDate))
   }, [bounds, disablePast, disableFuture, disabledKeys])
 
   const bsGrid = useMemo(() => getMonthGrid(bsYear, bsMonth), [bsYear, bsMonth])
@@ -428,7 +446,7 @@ export function BSCalendar({
       })
     }
     return map
-  }, [bsGrid, adGrid, eventsByDate, holidaysByDate, maxVisibleEvents])
+  }, [bsGrid, adGrid, eventsByDate, holidaysByDate, maxVisibleEvents, isDayDisabled])
 
   const isTailwind = theme === 'tailwind'
 
@@ -511,13 +529,12 @@ export function BSCalendar({
     const { cell } = data
     const isCellToday = cell.isToday
     const isCellSelected = selectedDate && dateToKey(cell.adDate) === dateToKey(selectedDate)
-    const hasEvents = data.events.length > 0 || data.holidays.length > 0
     const parts = [isTailwind ? cls.cell : undefined]
     if (isCellToday) parts.push(isTailwind ? cls.cellToday : undefined)
     if (isCellSelected) parts.push(isTailwind ? cls.cellSelected : undefined)
     if (cell.isOtherMonth) parts.push(isTailwind ? cls.cellOtherMonth : undefined)
     if (data.disabled) parts.push(isTailwind ? cls.cellDisabled : undefined)
-    if (hasEvents && data.holidays.length > 0) parts.push(isTailwind ? cls.cellWithHoliday : undefined)
+    if (data.holidays.length > 0) parts.push(isTailwind ? cls.cellWithHoliday : undefined)
     return parts.filter(Boolean).join(' ') || undefined
   }, [cls, selectedDate, isTailwind])
 
@@ -663,6 +680,31 @@ export function BSCalendar({
           const data = cellDataMap.get(cell.bsKey)!
           const isHovered = hoveredCell === cell.bsKey
 
+          // How many event/holiday items this cell actually renders, so the
+          // "+N more" count never over/understates what the user can see.
+          const shownHolidays = showHolidayLabels ? Math.min(data.holidays.length, maxVisibleEvents) : 0
+          const shownEvents = (showEventList || showEventBars)
+            ? Math.min(data.events.length, maxVisibleEvents)
+            : showEventDots ? Math.min(data.events.length, EVENT_DOT_MAX) : 0
+          const hiddenItems = Math.max(0, data.events.length + data.holidays.length - shownHolidays - shownEvents)
+
+          const civil = civilYMD(cell.adDate)
+          const cellInteraction = (disabled: boolean) => ({
+            role: 'button' as const,
+            tabIndex: disabled ? -1 : 0,
+            'aria-disabled': disabled || undefined,
+            'aria-label': `BS ${cell.bsKey} (AD ${civil.year}-${String(civil.month).padStart(2, '0')}-${String(civil.day).padStart(2, '0')})`,
+            onClick: () => { if (!disabled) handleDateSelect(cell) },
+            onKeyDown: (e: React.KeyboardEvent) => {
+              if ((e.key === 'Enter' || e.key === ' ') && !disabled) {
+                e.preventDefault()
+                handleDateSelect(cell)
+              }
+            },
+            onMouseEnter: () => setHoveredCell(cell.bsKey),
+            onMouseLeave: () => setHoveredCell(null),
+          })
+
           if (renderDay) {
             const disabled = data.disabled === true
             return (
@@ -670,10 +712,7 @@ export function BSCalendar({
                 key={cell.bsKey}
                 className={isTailwind ? getCellClasses(data) : undefined}
                 style={getCellStyle(data)}
-                onClick={() => { if (!disabled) handleDateSelect(cell) }}
-                onMouseEnter={() => setHoveredCell(cell.bsKey)}
-                onMouseLeave={() => setHoveredCell(null)}
-                aria-disabled={disabled || undefined}
+                {...cellInteraction(disabled)}
               >
                 {renderDay(data)}
               </div>
@@ -691,10 +730,7 @@ export function BSCalendar({
               key={cell.bsKey}
               className={isTailwind ? getCellClasses(data) : undefined}
               style={getCellStyle(data)}
-              onClick={() => { if (!data.disabled) handleDateSelect(cell) }}
-              onMouseEnter={() => setHoveredCell(cell.bsKey)}
-              onMouseLeave={() => setHoveredCell(null)}
-              aria-disabled={data.disabled || undefined}
+              {...cellInteraction(data.disabled === true)}
             >
               {showBs && (
                 <span
@@ -728,9 +764,9 @@ export function BSCalendar({
                       </div>
                     )
                 ))}
-                {showEventDots && data.events.length > 0 && data.holidays.length === 0 && (
+                {showEventDots && data.events.length > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
-                    {data.events.slice(0, 5).map(ev => (
+                    {data.events.slice(0, EVENT_DOT_MAX).map(ev => (
                       <div
                         key={ev.id}
                         className={cls.eventDot || undefined}
@@ -738,8 +774,8 @@ export function BSCalendar({
                         title={ev.title}
                       />
                     ))}
-                    {data.events.length > 5 && (
-                      <span style={{ fontSize: 8 }}>+{data.events.length - 5}</span>
+                    {data.events.length > EVENT_DOT_MAX && (
+                      <span style={{ fontSize: 8 }}>+{data.events.length - EVENT_DOT_MAX}</span>
                     )}
                   </div>
                 )}
@@ -770,13 +806,13 @@ export function BSCalendar({
                       </div>
                     )
                 ))}
-                {data.eventOverflow && (
+                {hiddenItems > 0 && (
                   <span
                     className={cls.moreLink || undefined}
                     style={theme === 'default' ? styles.moreLink as React.CSSProperties : undefined}
                     onClick={(e) => { e.stopPropagation(); /* could open popup */ }}
                   >
-                    +{data.events.length + data.holidays.length - maxVisibleEvents} more
+                    +{hiddenItems} more
                   </span>
                 )}
               </div>

@@ -63,7 +63,7 @@ This was verified directly from the raw RSC payloads and independently
 confirmed by the 2025 bikrantj scrape of the same source — the error is in
 Hamro's served projection, not in our extraction.
 
-**Correction applied:** Mangsir is shortened 30 → 29, giving 366 days
+**Correction applied:** Poush is shortened 30 → 29, giving 366 days
 (`[31,31,32,31,31,31,30,30,29,30,30,30]`), matching NDC's row for 2087.
 The New Year 2087 anchor (2030-04-14) is kept as Hamro serves it.
 

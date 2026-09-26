@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { toBS, toAD, isValidBS } from '../index'
+import { civilEpochDay } from '../core/epoch'
 import { toDevanagariNumeralsIn } from '../nepali'
 import { formatBSDate, formatADDate } from '../format-date'
 import { BSCalendar } from './calendar'
@@ -160,7 +161,10 @@ export function BSDatePicker({
   calendarProps,
 }: BSDatePickerProps) {
   const [open, setOpen] = useState(false)
-  const [inputValue, setInputValue] = useState('')
+  // `null` = show the formatted selection; a string = the user is typing, so the
+  // raw text (including an emptied field) is displayed verbatim.
+  const [inputValue, setInputValue] = useState<string | null>(null)
+  const [inputError, setInputError] = useState(false)
   const [activeMode, setActiveMode] = useState<DatePickerMode>(mode === 'both' ? defaultMode : mode)
   const [selectedDate, setSelectedDate] = useState<Date | null>(() => {
     if (propValue) return propValue
@@ -174,6 +178,18 @@ export function BSDatePicker({
 
   // Devanagari digit rendering for the input display and converted label.
   const num = useCallback((s: string) => (digits === 'devanagari' ? toDevanagariNumeralsIn(s) : s), [digits])
+
+  // Inclusive day-level bounds, shared by the calendar and typed input.
+  const isDateAllowed = useCallback((date: Date) => {
+    const ed = civilEpochDay(date)
+    if (minDate && ed < civilEpochDay(minDate)) return false
+    if (maxDate && ed > civilEpochDay(maxDate)) return false
+    const todayEd = civilEpochDay(new Date())
+    if (disablePast && ed < todayEd) return false
+    if (disableFuture && ed > todayEd) return false
+    if (disabledDates?.some(d => civilEpochDay(d) === ed)) return false
+    return true
+  }, [minDate, maxDate, disablePast, disableFuture, disabledDates])
 
   // Commit a selection through both callback shapes (BS-primary and AD-primary).
   const commit = useCallback((date: Date | null) => {
@@ -246,15 +262,32 @@ export function BSDatePicker({
     } catch { /* invalid BS value — ignore */ }
   }, [valueBSKey, valueBS])
 
+  // Keep the active tab in step when the `mode` prop changes.
+  useEffect(() => {
+    setActiveMode(mode === 'both' ? defaultMode : mode)
+  }, [mode, defaultMode])
+
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
     setInputValue(val)
     const parsed = parseDateInput(val, activeMode)
-    if (parsed) commit(parsed)
-  }, [activeMode, commit])
+    if (!parsed) {
+      // Non-empty but unparseable text is an error; an emptied field clears it.
+      setInputError(val.trim().length > 0)
+      return
+    }
+    if (!isDateAllowed(parsed)) {
+      setInputError(true)
+      return
+    }
+    setInputError(false)
+    commit(parsed)
+  }, [activeMode, commit, isDateAllowed])
 
   const handleDateSelect = useCallback((adDate: Date, _bs: { year: number; month: number; day: number }) => {
     commit(adDate)
+    setInputValue(null)
+    setInputError(false)
     setOpen(false)
   }, [commit])
 
@@ -280,24 +313,33 @@ export function BSDatePicker({
 
   const switchMode = useCallback((newMode: DatePickerMode) => {
     setActiveMode(newMode)
-    setInputValue('')
+    setInputValue(null)
+    setInputError(false)
   }, [])
 
   const handleToday = useCallback(() => {
     commit(new Date())
+    setInputValue(null)
+    setInputError(false)
     setOpen(false)
   }, [commit])
 
   const handleClear = useCallback(() => {
     commit(null)
-    setInputValue('')
+    setInputValue(null)
+    setInputError(false)
     setOpen(false)
   }, [commit])
 
   const inputProps = {
-    value: inputValue || displayValue,
+    value: inputValue ?? displayValue,
     onChange: handleInputChange,
     onFocus: () => {},
+    onBlur: () => {
+      // Re-normalize typed text to the canonical formatted selection.
+      setInputValue(null)
+      setInputError(false)
+    },
     onClick: () => {
       if (propShowCalendar) handleToggle()
     },
@@ -320,8 +362,10 @@ export function BSDatePicker({
         renderInput({ value: inputProps.value, onClick: handleToggle, onFocus: () => {} })
       ) : (
         <div
-          className={cls.inputWrapper || undefined}
-          style={theme === 'default' ? styles.inputWrapper as React.CSSProperties : undefined}
+          className={[cls.inputWrapper, inputError ? cls.inputError : undefined].filter(Boolean).join(' ') || undefined}
+          style={theme === 'default'
+            ? { ...(styles.inputWrapper as React.CSSProperties), ...(inputError ? styles.inputError as React.CSSProperties : {}) }
+            : undefined}
         >
           <input
             {...inputProps}
@@ -391,6 +435,7 @@ export function BSDatePicker({
             style={theme === 'default' ? styles.calendarWrapper as React.CSSProperties : undefined}
           >
             <BSCalendar
+              {...calendarProps}
               view={activeMode === 'bs' ? 'bs' : 'ad'}
               language={language}
               theme={calendarTheme}
@@ -407,7 +452,6 @@ export function BSDatePicker({
               digits={digits}
               enableMonthPicker={showMonthYearPicker}
               enableYearPicker={showMonthYearPicker}
-              {...calendarProps}
             />
           </div>
 
