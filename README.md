@@ -9,8 +9,16 @@
   <a href="https://www.npmjs.com/package/nepali-bs-calendar"><img src="https://img.shields.io/bundlephobia/minzip/nepali-bs-calendar?color=%233b82f6&label=size&logo=npm" alt="npm bundle size"></a>
   <a href="https://www.npmjs.com/package/nepali-bs-calendar"><img src="https://img.shields.io/npm/v/nepali-bs-calendar?color=%233b82f6&logo=npm" alt="npm version"></a>
   <a href="https://www.npmjs.com/package/nepali-bs-calendar"><img src="https://img.shields.io/npm/dw/nepali-bs-calendar?color=%233b82f6&logo=npm" alt="npm downloads"></a>
+  <a href="https://nepali-bs-calendar.netlify.app"><img src="https://img.shields.io/badge/docs-live_demo-%233b82f6?logo=netlify" alt="docs & live demo"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-%233b82f6" alt="MIT license"></a>
 </p>
+
+---
+
+## 🔗 Links
+
+- 📖 **Documentation & live demo** — <https://nepali-bs-calendar.netlify.app>
+- 📦 **npm package** — <https://www.npmjs.com/package/nepali-bs-calendar>
 
 ---
 
