@@ -106,6 +106,22 @@ import { BSDatePicker } from 'nepali-bs-calendar/date-picker'
 
 Typing `"2080-01-01"` auto-converts to AD `2023-04-14` and vice versa.
 
+### CDN (non-React)
+
+The global build bundles React, so it works with a plain `<script>` tag:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/nepali-bs-calendar/dist/global/nepali-datepicker.global.js"></script>
+<div id="date"></div>
+<script>
+  NepaliDatePicker.mount(document.getElementById('date'), {
+    mode: 'both',
+    onChangeBS(bs, ad) { console.log(bs, ad) },
+  })
+  // NepaliDatePicker.destroy(document.getElementById('date'))
+</script>
+```
+
 ### Events & Holidays (BS dates supported)
 
 ```tsx

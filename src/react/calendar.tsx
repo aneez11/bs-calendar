@@ -168,56 +168,56 @@ export interface BSCalendarProps {
 }
 
 const defaultStyles: Required<BSCalendarStyles> = {
-  container: { fontFamily: 'system-ui, sans-serif', maxWidth: 480, userSelect: 'none' },
-  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0' },
-  navButton: { background: 'none', border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer', padding: '4px 12px', fontSize: 16 },
-  monthYear: { fontSize: 16, fontWeight: 600 },
-  weekdays: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', fontSize: 12, color: '#666', marginBottom: 4 },
-  weekday: { padding: '4px 0' },
+  container: { fontFamily: 'system-ui, sans-serif', width: '100%', maxWidth: 320, userSelect: 'none' },
+  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' },
+  navButton: { background: 'none', border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer', padding: '3px 9px', fontSize: 14 },
+  monthYear: { fontSize: 15, fontWeight: 600 },
+  weekdays: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', fontSize: 11, color: '#666', marginBottom: 2 },
+  weekday: { padding: '3px 0' },
   daysGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridAutoRows: '1fr', gap: 1 },
-  cell: { textAlign: 'center', padding: 4, cursor: 'pointer', borderRadius: 4, minHeight: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', transition: 'background 0.15s', position: 'relative' },
+  cell: { textAlign: 'center', padding: 2, cursor: 'pointer', borderRadius: 4, minHeight: 36, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', transition: 'background 0.15s', position: 'relative' },
   cellToday: { background: '#e3f2fd', fontWeight: 700 },
   cellSelected: { background: '#bbdefb', fontWeight: 700, border: '2px solid #1976d2' },
   cellOtherMonth: { opacity: 0.3 },
   cellDisabled: { opacity: 0.35, textDecoration: 'line-through', cursor: 'not-allowed' },
   cellWithEvents: {},
   cellWithHoliday: { background: '#fff3e0' },
-  bsNumber: { fontSize: 13, lineHeight: 1.3 },
-  adNumber: { fontSize: 9, color: '#888', lineHeight: 1.2 },
-  eventDot: { width: 5, height: 5, borderRadius: '50%', display: 'inline-block', margin: '0 1px' },
+  bsNumber: { fontSize: 12, lineHeight: 1.25 },
+  adNumber: { fontSize: 8, color: '#888', lineHeight: 1.2 },
+  eventDot: { width: 4, height: 4, borderRadius: '50%', display: 'inline-block', margin: '0 1px' },
   eventBar: { height: 3, borderRadius: 2, marginTop: 1, width: '80%' },
-  holidayLabel: { fontSize: 9, color: '#e65100', lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', padding: '0 2px' },
-  moreLink: { fontSize: 9, color: '#1976d2', cursor: 'pointer', fontWeight: 600 },
+  holidayLabel: { fontSize: 8, color: '#e65100', lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', padding: '0 2px' },
+  moreLink: { fontSize: 8, color: '#1976d2', cursor: 'pointer', fontWeight: 600 },
   eventPopup: { position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', background: 'white', border: '1px solid #ddd', borderRadius: 6, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', padding: 8, zIndex: 10, minWidth: 180, textAlign: 'left' },
-  eventItem: { display: 'flex', alignItems: 'center', gap: 4, padding: '2px 0', fontSize: 11 },
+  eventItem: { display: 'flex', alignItems: 'center', gap: 4, padding: '1px 0', fontSize: 10 },
   eventTitle: { fontWeight: 500 },
-  eventTime: { color: '#666', fontSize: 10 },
+  eventTime: { color: '#666', fontSize: 9 },
   eventList: {},
 }
 
 const tailwindClasses: Required<BSCalendarClassNames> = {
-  container: 'nbs-calendar max-w-md select-none',
-  header: 'flex items-center justify-between px-1 py-2',
-  navButton: 'px-3 py-1 text-lg rounded border border-gray-300 hover:bg-gray-100 transition-colors cursor-pointer bg-white',
+  container: 'nbs-calendar w-full max-w-[320px] select-none',
+  header: 'flex items-center justify-between px-1 py-1.5',
+  navButton: 'px-2.5 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100 transition-colors cursor-pointer bg-white',
   navPrev: '', navNext: '',
-  monthYear: 'text-base font-semibold text-gray-800',
-  weekdays: 'grid grid-cols-7 text-center text-xs text-gray-500 mb-1',
-  weekday: 'py-1',
+  monthYear: 'text-sm font-semibold text-gray-800',
+  weekdays: 'grid grid-cols-7 text-center text-[11px] text-gray-500 mb-0.5',
+  weekday: 'py-0.5',
   daysGrid: 'grid grid-cols-7 gap-0.5 auto-rows-fr',
-  cell: 'text-center p-1 rounded cursor-pointer min-h-[56px] flex flex-col items-center justify-start transition-colors hover:bg-gray-50 relative',  cellToday: 'bg-blue-50 font-bold ring-1 ring-blue-300',
+  cell: 'text-center p-0.5 rounded cursor-pointer min-h-[36px] flex flex-col items-center justify-start transition-colors hover:bg-gray-50 relative',  cellToday: 'bg-blue-50 font-bold ring-1 ring-blue-300',
   cellSelected: 'bg-blue-100 font-bold ring-2 ring-blue-500',
   cellOtherMonth: 'opacity-30',
   cellDisabled: 'opacity-40 line-through cursor-not-allowed',
   cellWithEvents: '', cellWithHoliday: 'bg-orange-50',
-  bsNumber: 'text-xs leading-tight', adNumber: 'text-[9px] text-gray-400 leading-tight',
-  eventDot: 'w-1.5 h-1.5 rounded-full inline-block mx-0.5',
+  bsNumber: 'text-[12px] leading-tight', adNumber: 'text-[8px] text-gray-400 leading-tight',
+  eventDot: 'w-1 h-1 rounded-full inline-block mx-0.5',
   eventBar: 'h-0.5 rounded mt-0.5 w-4/5',
-  holidayLabel: 'text-[9px] text-orange-700 leading-tight truncate w-full px-0.5',
-  moreLink: 'text-[9px] text-blue-600 cursor-pointer font-semibold',
+  holidayLabel: 'text-[8px] text-orange-700 leading-tight truncate w-full px-0.5',
+  moreLink: 'text-[8px] text-blue-600 cursor-pointer font-semibold',
   eventPopup: 'absolute bottom-full left-1/2 -translate-x-1/2 bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-10 min-w-[180px] text-left text-xs',
-  eventItem: 'flex items-center gap-1 py-0.5 text-xs',
+  eventItem: 'flex items-center gap-1 py-0 text-[10px]',
   eventTitle: 'font-medium',
-  eventTime: 'text-gray-500 text-[10px]',
+  eventTime: 'text-gray-500 text-[9px]',
   eventList: '',
 }
 
@@ -285,7 +285,7 @@ export function BSCalendar({
   showEventList = false,
   showPopupOnHover = false,
   dateFormat,
-  cellAspectRatio = 1,
+  cellAspectRatio = 1.15,
   initialDate,
   minBSYear,
   maxBSYear,
@@ -525,6 +525,14 @@ export function BSCalendar({
     })
   }, [cls, styles, isTailwind, language])
 
+  const hasEventContent = events.length > 0 || holidays.length > 0
+  const eventAreaHeight = !hasEventContent ? 0
+    : (showHolidayLabels ? 10 : 0) +
+      (showEventList ? maxVisibleEvents * 14
+        : showEventBars ? maxVisibleEvents * 4
+          : showEventDots ? 8
+            : 0)
+
   const getCellClasses = useCallback((data: CellData) => {
     const { cell } = data
     const isCellToday = cell.isToday
@@ -539,13 +547,14 @@ export function BSCalendar({
   }, [cls, selectedDate, isTailwind])
 
   /**
-   * Stable cell geometry for every theme: cells keep width × cellAspectRatio
-   * height (aspect-ratio CSS, default 1 — a uniform square-ish grid), floored
-   * so event dots/labels never collapse a row. Empty cells no longer shrink.
+   * Stable cell geometry for every theme: cells keep width ÷ cellAspectRatio
+   * height (aspect-ratio CSS, default 1.15). The event area below the day
+   * numbers has a fixed height, so a month with events is exactly as tall as
+   * one without.
    */
   const getCellStyle = useCallback((data: CellData): React.CSSProperties => {
     const { cell } = data
-    const base: React.CSSProperties = { aspectRatio: String(cellAspectRatio) }
+    const base: React.CSSProperties = { aspectRatio: String(cellAspectRatio), minWidth: 0 }
     if (theme === 'default') {
       Object.assign(base, styles.cell)
       if (cell.isToday && styles.cellToday) Object.assign(base, styles.cellToday)
@@ -554,8 +563,9 @@ export function BSCalendar({
       if (data.disabled && styles.cellDisabled) Object.assign(base, styles.cellDisabled)
       if (data.holidays.length > 0 && styles.cellWithHoliday) Object.assign(base, styles.cellWithHoliday)
     }
+    base.minHeight = 29 + eventAreaHeight
     return base
-  }, [styles, selectedDate, cellAspectRatio, theme])
+  }, [styles, selectedDate, cellAspectRatio, theme, eventAreaHeight])
 
   return (
     <div
@@ -749,7 +759,7 @@ export function BSCalendar({
                 </span>
               )}
 
-              <div style={{ width: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 1, overflow: 'hidden' }}>
+              <div style={{ width: '100%', height: eventAreaHeight, flexShrink: 0, contain: 'size', display: 'flex', flexDirection: 'column', gap: 1, overflow: 'hidden' }}>
                 {showHolidayLabels && data.holidays.slice(0, maxVisibleEvents).map(h => (
                   renderHoliday
                     ? <div key={h.date + h.name} onClick={(e) => { e.stopPropagation(); onHolidayClick?.(h, cell.adDate) }}>{renderHoliday(h)}</div>

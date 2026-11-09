@@ -6,6 +6,8 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "unpkg": "./dist/global/nepali-datepicker.global.js",
+  "jsdelivr": "./dist/global/nepali-datepicker.global.js",
   "sideEffects": false,
   "files": [
     "dist"
@@ -17,7 +19,7 @@
     "type": "git",
     "url": "git+https://github.com/aneez11/bs-calendar.git"
   },
-  "homepage": "https://github.com/aneez11/bs-calendar#readme",
+  "homepage": "https://nepali-bs-calendar.netlify.app/",
   "bugs": {
     "url": "https://github.com/aneez11/bs-calendar/issues"
   },

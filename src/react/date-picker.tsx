@@ -76,14 +76,14 @@ export interface BSDatePickerProps {
 const pickerDefaultStyles: Required<BSDatePickerStyles> = {
   wrapper: { position: 'relative', fontFamily: 'system-ui, sans-serif' },
   inputWrapper: { display: 'flex', alignItems: 'center', border: '1px solid #d1d5db', borderRadius: 6, overflow: 'hidden', background: '#fff' },
-  input: { flex: 1, border: 'none', outline: 'none', padding: '8px 12px', fontSize: 14, fontFamily: 'inherit', minWidth: 0 },
+  input: { flex: 1, border: 'none', outline: 'none', padding: '6px 10px', fontSize: 13, fontFamily: 'inherit', minWidth: 0 },
   inputError: { borderColor: '#dc2626' },
-  toggleButton: { background: 'none', border: 'none', borderLeft: '1px solid #e5e7eb', padding: '6px 10px', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  dropdown: { position: 'absolute', zIndex: 50, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.12)', overflow: 'hidden', marginTop: 4 },
+  toggleButton: { background: 'none', border: 'none', borderLeft: '1px solid #e5e7eb', padding: '5px 8px', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  dropdown: { position: 'absolute', zIndex: 50, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.12)', overflow: 'hidden', marginTop: 2 },
   modeSwitch: { display: 'flex', borderBottom: '1px solid #e5e7eb' },
-  modeButton: { flex: 1, padding: '6px 8px', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 500, color: '#6b7280', transition: 'all 0.15s' },
+  modeButton: { flex: 1, padding: '5px 6px', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 500, color: '#6b7280', transition: 'all 0.15s' },
   modeButtonActive: { background: '#eff6ff', color: '#2563eb', fontWeight: 600 },
-  convertedLabel: { fontSize: 11, color: '#6b7280', padding: '2px 12px 6px', lineHeight: 1.3 },
+  convertedLabel: { fontSize: 10, color: '#6b7280', padding: '1px 10px 5px', lineHeight: 1.3 },
   calendarWrapper: {},
 }
 
@@ -396,6 +396,7 @@ export function BSDatePicker({
         <div
           className={cls.dropdown || undefined}
           style={{
+            width: 'min(100%, 320px)',
             ...(theme === 'default' ? styles.dropdown as React.CSSProperties : {}),
             ...(placement.startsWith('bottom') ? { top: '100%', left: placement === 'bottom-end' ? undefined : 0, right: placement === 'bottom-end' ? 0 : undefined } : { bottom: '100%', left: placement === 'top-end' ? undefined : 0, right: placement === 'top-end' ? 0 : undefined }),
           } as React.CSSProperties}
@@ -460,8 +461,8 @@ export function BSDatePicker({
               type="button"
               onClick={handleToday}
               style={{
-                flex: 1, padding: '6px', border: 'none', background: 'transparent',
-                cursor: 'pointer', fontSize: 12, color: '#2563eb', fontWeight: 500,
+                flex: 1, padding: '5px', border: 'none', background: 'transparent',
+                cursor: 'pointer', fontSize: 11, color: '#2563eb', fontWeight: 500,
               }}
               className={isTailwind ? 'flex-1 py-1.5 px-2 border-none bg-transparent cursor-pointer text-xs text-blue-600 font-medium' : undefined}
             >
@@ -471,8 +472,8 @@ export function BSDatePicker({
               type="button"
               onClick={handleClear}
               style={{
-                flex: 1, padding: '6px', border: 'none', borderLeft: '1px solid #e5e7eb',
-                background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#dc2626', fontWeight: 500,
+                flex: 1, padding: '5px', border: 'none', borderLeft: '1px solid #e5e7eb',
+                background: 'transparent', cursor: 'pointer', fontSize: 11, color: '#dc2626', fontWeight: 500,
               }}
               className={isTailwind ? 'flex-1 py-1.5 px-2 border-none border-l border-gray-200 bg-transparent cursor-pointer text-xs text-red-600 font-medium' : undefined}
             >
@@ -482,8 +483,8 @@ export function BSDatePicker({
               type="button"
               onClick={() => setOpen(false)}
               style={{
-                flex: 1, padding: '6px', border: 'none', borderLeft: '1px solid #e5e7eb',
-                background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#6b7280',
+                flex: 1, padding: '5px', border: 'none', borderLeft: '1px solid #e5e7eb',
+                background: 'transparent', cursor: 'pointer', fontSize: 11, color: '#6b7280',
               }}
               className={isTailwind ? 'flex-1 py-1.5 px-2 border-none border-l border-gray-200 bg-transparent cursor-pointer text-xs text-gray-500' : undefined}
             >
